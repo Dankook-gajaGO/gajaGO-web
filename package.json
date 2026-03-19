@@ -20,5 +20,8 @@
     "*.{json,md,css,scss}": [
       "prettier --write"
     ]
+  },
+  "dependencies": {
+    "vite": "^8.0.0"
   }
 }
