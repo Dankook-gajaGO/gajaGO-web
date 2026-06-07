@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "Gajago",
+    "slug": "gajago",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "gajago",
+    "android": {
+      "package": "com.gajago.app",
+      "edgeToEdgeEnabled": true
+    },
+    "plugins": [
+      "expo-font"
+    ]
+  }
+}
