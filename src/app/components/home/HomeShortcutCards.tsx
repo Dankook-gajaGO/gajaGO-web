@@ -19,19 +19,19 @@ export function HomeShortcutCards({
         <Pressable style={[styles.smallCard, shadow.card]} onPress={onOpenCalendar}>
           <Feather name="calendar" size={24} color={COLORS.teal} />
           <Text style={styles.smallTitle}>캘린더</Text>
-          <Text style={styles.smallText}>서버 기준 날짜와 여행 메모를 한 번에 확인합니다.</Text>
+          <Text style={styles.smallText}>메모와 일정을 확인합니다.</Text>
         </Pressable>
         <Pressable style={[styles.smallCard, shadow.card]} onPress={onOpenSchedule}>
           <Feather name="map-pin" size={24} color={COLORS.blue} />
           <Text style={styles.smallTitle}>내 일정</Text>
-          <Text style={styles.smallText}>선택한 날짜의 일정 정보를 확인합니다.</Text>
+          <Text style={styles.smallText}>오늘 할 일을 정리합니다.</Text>
         </Pressable>
       </View>
 
       <Pressable style={styles.weekendCard} onPress={onOpenEvents}>
         <View>
           <Text style={styles.weekendEyebrow}>행사 추천</Text>
-          <Text style={styles.weekendTitle}>지역과 기간에 맞는 축제와 행사를 찾아보세요</Text>
+          <Text style={styles.weekendTitle}>지금 갈 만한 행사를 찾아보세요</Text>
         </View>
         <Feather name="arrow-right" size={22} color={COLORS.white} />
       </Pressable>

@@ -2,13 +2,23 @@ import { useEffect, useState } from 'react';
 import Feather from '@expo/vector-icons/Feather';
 import { ActivityIndicator, Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { getFestivalDetail, type FestivalDetailResponse } from '../api';
+import {
+  createScheduleItem,
+  deleteSavedFestival,
+  getApiErrorMessage,
+  getFestivalDetail,
+  getSavedFestivals,
+  saveFestival,
+  type FestivalDetailResponse,
+} from '../api';
 import { AppHeader } from '../components/common/AppHeader';
 import { EmptyState } from '../components/common/EmptyState';
 import { Screen } from '../components/common/Screen';
+import { ToastMessage } from '../components/common/ToastMessage';
 import { festivalDetailToEvent, type FestivalEventItem } from '../data/festivalEvents';
 import type { RootStackParamList } from '../routes';
 import { COLORS, radius } from '../theme';
+import { getFallbackTodayKey } from '../utils/date';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EventDetails'>;
 
@@ -20,18 +30,26 @@ function extractHomepageUrl(value?: string | null) {
   const urlMatch = text.match(/https?:\/\/[^\s"'<>]+/i);
   const wwwMatch = text.match(/www\.[^\s"'<>]+/i);
   const candidate = hrefMatch?.[1] ?? urlMatch?.[0] ?? wwwMatch?.[0] ?? '';
-  const cleaned = candidate.replace(/&amp;/g, '&').replace(/[)\].,。]+$/, '');
+  const cleaned = candidate.replace(/&amp;/g, '&').replace(/[)\].,!?]+$/, '');
 
   if (/^https?:\/\//i.test(cleaned)) return cleaned;
   if (/^www\./i.test(cleaned)) return `https://${cleaned}`;
   return '';
 }
 
+function getEventScheduleDate(event: FestivalEventItem) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(event.startDate) ? event.startDate : getFallbackTodayKey();
+}
+
 export default function EventDetailScreen({ navigation, route }: Props) {
+  const country = route.params?.country ?? 'korea';
   const eventId = route.params?.eventId;
   const [event, setEvent] = useState<FestivalEventItem | null>(null);
   const [detail, setDetail] = useState<FestivalDetailResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isAddingSchedule, setIsAddingSchedule] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
 
   useEffect(() => {
@@ -41,7 +59,7 @@ export default function EventDetailScreen({ navigation, route }: Props) {
       if (!eventId) {
         setEvent(null);
         setDetail(null);
-        setStatusMessage('행사 ID가 없어 상세 정보를 불러올 수 없습니다.');
+        setStatusMessage('행사를 불러오지 못했어요');
         return;
       }
 
@@ -52,14 +70,24 @@ export default function EventDetailScreen({ navigation, route }: Props) {
         const response = await getFestivalDetail(eventId);
         if (!active) return;
 
+        const nextEvent = festivalDetailToEvent(response);
         setDetail(response);
-        setEvent(festivalDetailToEvent(response));
+        setEvent(nextEvent);
+
+        try {
+          const savedResponse = await getSavedFestivals();
+          if (active) {
+            setIsSaved(savedResponse.savedFestivals.some((item) => item.contentId === nextEvent.contentId));
+          }
+        } catch {
+          if (active) setIsSaved(false);
+        }
       } catch {
         if (!active) return;
 
         setEvent(null);
         setDetail(null);
-        setStatusMessage('행사 상세 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+        setStatusMessage('불러오지 못했어요');
       } finally {
         if (active) setIsLoading(false);
       }
@@ -76,6 +104,54 @@ export default function EventDetailScreen({ navigation, route }: Props) {
 
   const openHomepage = () => {
     if (homepageUrl) void Linking.openURL(homepageUrl);
+  };
+
+  const toggleSaved = async () => {
+    if (!event || isSaving) return;
+
+    setIsSaving(true);
+    setStatusMessage('');
+
+    try {
+      if (isSaved) {
+        await deleteSavedFestival(event.contentId);
+        setIsSaved(false);
+        setStatusMessage('저장을 취소했어요');
+      } else {
+        await saveFestival(event.contentId);
+        setIsSaved(true);
+        setStatusMessage('저장했어요');
+      }
+    } catch (error) {
+      setStatusMessage(getApiErrorMessage(error));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const addToCalendar = async () => {
+    if (!event || isAddingSchedule) return;
+
+    const date = getEventScheduleDate(event);
+    setIsAddingSchedule(true);
+    setStatusMessage('');
+
+    try {
+      await createScheduleItem({
+        date,
+        type: 'FESTIVAL',
+        title: event.title,
+        festivalContentId: event.contentId,
+        placeName: event.title,
+        address: event.location,
+      });
+      setStatusMessage(`${date} 일정에 추가했어요`);
+      navigation.navigate('CalendarDetail', { country, date });
+    } catch (error) {
+      setStatusMessage(getApiErrorMessage(error));
+    } finally {
+      setIsAddingSchedule(false);
+    }
   };
 
   return (
@@ -119,12 +195,39 @@ export default function EventDetailScreen({ navigation, route }: Props) {
               <Text style={styles.description}>{detail?.overview || '상세 소개 정보가 없습니다.'}</Text>
             </View>
 
-            {homepageUrl ? (
-              <View style={styles.actions}>
+            <View style={styles.actions}>
+              <Pressable
+                style={[styles.primaryButton, isSaving ? styles.disabledButton : null]}
+                onPress={toggleSaved}
+                disabled={isSaving}
+              >
+                <Feather name="heart" size={17} color={COLORS.white} />
+                <Text style={styles.primaryText}>{isSaved ? '저장됨' : '저장'}</Text>
+              </Pressable>
+
+              <Pressable
+                style={[styles.secondaryButton, isAddingSchedule ? styles.disabledButton : null]}
+                onPress={addToCalendar}
+                disabled={isAddingSchedule}
+              >
+                <Feather name="calendar" size={17} color={COLORS.ink} />
+                <Text style={styles.secondaryText}>일정 추가</Text>
+              </Pressable>
+
+              {homepageUrl ? (
                 <Pressable style={styles.secondaryButton} onPress={openHomepage}>
                   <Feather name="external-link" size={17} color={COLORS.ink} />
-                  <Text style={styles.secondaryText}>홈페이지 열기</Text>
+                  <Text style={styles.secondaryText}>홈페이지</Text>
                 </Pressable>
+              ) : null}
+            </View>
+
+            {statusMessage ? (
+              <View style={styles.toastWrap}>
+                <ToastMessage
+                  message={statusMessage}
+                  tone={statusMessage.includes('못') ? 'error' : 'success'}
+                />
               </View>
             ) : null}
           </>
@@ -260,6 +363,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 24,
   },
+  primaryButton: {
+    minHeight: 52,
+    borderRadius: radius.lg,
+    backgroundColor: COLORS.teal,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  primaryText: {
+    color: COLORS.white,
+    fontSize: 15,
+    fontWeight: '900',
+    marginLeft: 7,
+  },
   secondaryButton: {
     minHeight: 52,
     borderRadius: radius.lg,
@@ -268,11 +386,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 10,
   },
   secondaryText: {
     color: COLORS.ink,
     fontSize: 15,
     fontWeight: '900',
     marginLeft: 7,
+  },
+  disabledButton: {
+    opacity: 0.55,
+  },
+  toastWrap: {
+    paddingHorizontal: 20,
   },
 });

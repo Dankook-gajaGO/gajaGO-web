@@ -1,14 +1,22 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Feather from '@expo/vector-icons/Feather';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getServerTodayKey } from '../api';
+import {
+  createScheduleItem,
+  getApiErrorMessage,
+  getMonthlyScheduleItems,
+  getServerTodayKey,
+  type ScheduleItemApi,
+} from '../api';
 import { AppHeader } from '../components/common/AppHeader';
 import { BottomNavBar } from '../components/BottomNavBar';
 import { MemoPreviewCard } from '../components/calendar/MemoPreviewCard';
 import { MonthCalendar } from '../components/calendar/MonthCalendar';
 import { SelectedDatePanel } from '../components/calendar/SelectedDatePanel';
+import { ToastMessage } from '../components/common/ToastMessage';
 import { holidays, type Memo } from '../data/calendar';
 import type { RootStackParamList } from '../routes';
 import { COLORS } from '../theme';
@@ -20,6 +28,16 @@ function monthLabel(year: number, month: number) {
   return `${year}.${month + 1 < 10 ? `0${month + 1}` : month + 1}`;
 }
 
+function toCalendarMemo(item: ScheduleItemApi): Memo {
+  const prefix = item.type === 'FESTIVAL' ? '행사' : item.type === 'MEMO' ? '메모' : '일정';
+  return {
+    id: String(item.itemId),
+    date: item.date,
+    title: `[${prefix}] ${item.title}`,
+    content: item.memo ?? item.festivalAddr ?? item.address ?? undefined,
+  };
+}
+
 export default function CalendarDetailScreen({ navigation, route }: Props) {
   const routeDate = route.params?.date;
   const fallbackToday = getFallbackTodayKey();
@@ -27,9 +45,11 @@ export default function CalendarDetailScreen({ navigation, route }: Props) {
   const [today, setToday] = useState(initialDate);
   const [visibleMonth, setVisibleMonth] = useState(() => getMonthStartDate(initialDate));
   const [selectedDate, setSelectedDate] = useState(initialDate);
-  const [memos, setMemos] = useState<Memo[]>([]);
+  const [scheduleItems, setScheduleItems] = useState<ScheduleItemApi[]>([]);
   const [draft, setDraft] = useState('');
   const [isResolvingDate, setIsResolvingDate] = useState(!routeDate);
+  const [isLoadingItems, setIsLoadingItems] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('');
 
   useEffect(() => {
     if (!routeDate) return;
@@ -64,19 +84,52 @@ export default function CalendarDetailScreen({ navigation, route }: Props) {
     };
   }, [routeDate]);
 
+  const loadMonthlyItems = useCallback(async () => {
+    setIsLoadingItems(true);
+    setStatusMessage('');
+
+    try {
+      const response = await getMonthlyScheduleItems(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1);
+      setScheduleItems(response.items ?? []);
+    } catch (error) {
+      setScheduleItems([]);
+      setStatusMessage(getApiErrorMessage(error));
+    } finally {
+      setIsLoadingItems(false);
+    }
+  }, [visibleMonth]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadMonthlyItems();
+    }, [loadMonthlyItems])
+  );
+
+  const memos = useMemo(() => scheduleItems.map(toCalendarMemo), [scheduleItems]);
+
   const selectedMemos = useMemo(
     () => memos.filter((memo) => memo.date === selectedDate),
     [memos, selectedDate]
   );
 
-  const addMemo = () => {
+  const addMemo = async () => {
     const title = draft.trim();
     if (!title) return;
-    setMemos((items) => [
-      ...items,
-      { id: `memo-${Date.now()}`, date: selectedDate, title },
-    ]);
-    setDraft('');
+
+    setStatusMessage('');
+
+    try {
+      const created = await createScheduleItem({
+        date: selectedDate,
+        type: 'MEMO',
+        title,
+      });
+      setScheduleItems((items) => [...items, created]);
+      setDraft('');
+      setStatusMessage('메모를 추가했어요');
+    } catch (error) {
+      setStatusMessage(getApiErrorMessage(error));
+    }
   };
 
   const moveMonth = (offset: number) => {
@@ -95,10 +148,10 @@ export default function CalendarDetailScreen({ navigation, route }: Props) {
             <Text style={styles.monthText}>
               {monthLabel(visibleMonth.getFullYear(), visibleMonth.getMonth())}
             </Text>
-            {isResolvingDate ? (
+            {isResolvingDate || isLoadingItems ? (
               <View style={styles.syncRow}>
                 <ActivityIndicator color={COLORS.teal} size="small" />
-                <Text style={styles.syncText}>서버 날짜 확인 중</Text>
+                <Text style={styles.syncText}>일정을 확인하는 중</Text>
               </View>
             ) : null}
           </View>
@@ -119,8 +172,12 @@ export default function CalendarDetailScreen({ navigation, route }: Props) {
 
         <View style={styles.legend}>
           <Legend color={COLORS.red} label="공휴일" />
-          <Legend color={COLORS.teal} label="메모" />
+          <Legend color={COLORS.teal} label="저장 일정" />
         </View>
+
+        {statusMessage ? (
+          <ToastMessage message={statusMessage} tone={statusMessage.includes('못') ? 'error' : 'success'} />
+        ) : null}
 
         <SelectedDatePanel
           selectedDate={selectedDate}
@@ -130,11 +187,11 @@ export default function CalendarDetailScreen({ navigation, route }: Props) {
           onAddMemo={addMemo}
         />
 
-        <Text style={styles.sectionTitle}>최근 메모</Text>
+        <Text style={styles.sectionTitle}>최근 일정</Text>
         {memos.length > 0 ? (
-          memos.slice(0, 3).map((memo) => <MemoPreviewCard key={memo.id} memo={memo} />)
+          memos.slice(-3).reverse().map((memo) => <MemoPreviewCard key={memo.id} memo={memo} />)
         ) : (
-          <Text style={styles.emptyText}>아직 작성한 메모가 없습니다.</Text>
+          <Text style={styles.emptyText}>아직 저장한 일정이나 메모가 없습니다.</Text>
         )}
       </ScrollView>
       <BottomNavBar active="CalendarDetail" navigation={navigation} />

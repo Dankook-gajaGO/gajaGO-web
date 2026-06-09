@@ -14,18 +14,24 @@ export function FoodCard({ item }: FoodCardProps) {
           <Text style={styles.name}>{item.name}</Text>
           <Text style={styles.area}>{item.category}</Text>
         </View>
-        <View style={styles.scoreBadge}>
-          <Text style={styles.scoreText}>추천</Text>
+      </View>
+      {item.note ? (
+        <View style={styles.ingredientBox}>
+          <Text style={styles.ingredientLabel}>성분</Text>
+          <Text style={styles.ingredientText} numberOfLines={2}>
+            {item.note}
+          </Text>
         </View>
-      </View>
-      <Text style={styles.note}>{item.note}</Text>
-      <View style={styles.tags}>
-        {item.tags.map((tag) => (
-          <View key={tag} style={styles.tag}>
-            <Text style={styles.tagText}>{tag}</Text>
-          </View>
-        ))}
-      </View>
+      ) : null}
+      {item.tags.length > 0 ? (
+        <View style={styles.tags}>
+          {item.tags.map((tag) => (
+            <View key={tag} style={styles.tag}>
+              <Text style={styles.tagText}>{tag}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -34,7 +40,7 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: radius.lg,
     backgroundColor: COLORS.white,
-    padding: 16,
+    padding: 18,
     marginBottom: 12,
   },
   cardHeader: {
@@ -56,27 +62,29 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 3,
   },
-  scoreBadge: {
-    borderRadius: 999,
-    backgroundColor: '#E5F7F7',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  scoreText: {
-    color: COLORS.teal,
-    fontSize: 11,
-    fontWeight: '900',
-  },
-  note: {
-    color: COLORS.text,
-    fontSize: 13,
-    lineHeight: 19,
-    marginTop: 12,
-  },
   tags: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginTop: 12,
+  },
+  ingredientBox: {
+    borderRadius: radius.md,
+    backgroundColor: COLORS.card,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: 14,
+  },
+  ingredientLabel: {
+    color: COLORS.teal,
+    fontSize: 11,
+    fontWeight: '900',
+    marginBottom: 4,
+  },
+  ingredientText: {
+    color: COLORS.text,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
   },
   tag: {
     borderRadius: radius.sm,

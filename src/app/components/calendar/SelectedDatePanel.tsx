@@ -25,10 +25,11 @@ export function SelectedDatePanel({
         memos.map((memo) => (
           <View key={memo.id} style={styles.memo}>
             <Text style={styles.memoTitle}>{memo.title}</Text>
+            {memo.content ? <Text style={styles.memoContent}>{memo.content}</Text> : null}
           </View>
         ))
       ) : (
-        <Text style={styles.emptyText}>이 날짜에는 메모가 없습니다.</Text>
+        <Text style={styles.emptyText}>이 날짜에는 저장된 일정이 없습니다.</Text>
       )}
       <View style={styles.inputRow}>
         <TextInput
@@ -37,6 +38,8 @@ export function SelectedDatePanel({
           placeholder="메모 추가"
           placeholderTextColor={COLORS.muted}
           style={styles.input}
+          onSubmitEditing={onAddMemo}
+          returnKeyType="done"
         />
         <Pressable style={styles.addButton} onPress={onAddMemo}>
           <Feather name="plus" size={20} color={COLORS.white} />
@@ -67,7 +70,13 @@ const styles = StyleSheet.create({
   memoTitle: {
     color: COLORS.text,
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
+  },
+  memoContent: {
+    color: COLORS.muted,
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 4,
   },
   emptyText: {
     color: COLORS.muted,

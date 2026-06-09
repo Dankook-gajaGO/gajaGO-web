@@ -33,6 +33,9 @@ export default function FoodScreenAllergy({ navigation }: Props) {
     );
   };
 
+  const allergySummary =
+    selectedAllergies.length > 0 ? `제외: ${selectedAllergies.join(' · ')}` : '제외 성분 없음';
+
   return (
     <View style={styles.screen}>
       <AppHeader title="음식 알레르기" onBack={() => navigation.goBack()} />
@@ -44,10 +47,14 @@ export default function FoodScreenAllergy({ navigation }: Props) {
           selectedAllergies={selectedAllergies}
           onToggle={toggleAllergy}
         />
+        <View style={styles.resultSummary}>
+          <Text style={styles.resultCount}>추천 음식 {filteredFoods.length}개</Text>
+          <Text style={styles.resultCondition}>{allergySummary}</Text>
+        </View>
         {isLoading ? (
           <View style={styles.statusRow}>
             <ActivityIndicator color={COLORS.teal} />
-            <Text style={styles.statusText}>음식 목록을 불러오는 중입니다.</Text>
+            <Text style={styles.statusText}>불러오는 중이에요</Text>
           </View>
         ) : null}
         {statusMessage ? <Text style={styles.errorText}>{statusMessage}</Text> : null}
@@ -87,6 +94,25 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 10,
   },
+  resultSummary: {
+    minHeight: 48,
+    borderRadius: 16,
+    backgroundColor: COLORS.white,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginTop: 8,
+  },
+  resultCount: {
+    color: COLORS.ink,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  resultCondition: {
+    color: COLORS.muted,
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 3,
+  },
   statusRow: {
     minHeight: 32,
     flexDirection: 'row',
@@ -106,7 +132,7 @@ const styles = StyleSheet.create({
   },
   list: {
     padding: 20,
-    paddingTop: 8,
+    paddingTop: 6,
     paddingBottom: 28,
   },
 });
