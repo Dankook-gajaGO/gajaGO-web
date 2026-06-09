@@ -10,6 +10,25 @@ interface RouteListProps {
   onSelectRoute: (routeId: string) => void;
 }
 
+function getRouteHighlights(route: TransportRoute, routes: TransportRoute[]) {
+  if (routes.length === 0) return [];
+
+  const minTime = Math.min(...routes.map((item) => item.travelTime));
+  const minFare = Math.min(...routes.map((item) => item.fare));
+  const minWalk = Math.min(...routes.map((item) => item.walkingDistance));
+  const minTransfers = Math.min(...routes.map((item) => item.transfers));
+  const labels: string[] = [];
+
+  if (route.rank === 1) labels.push('추천');
+  if (route.travelTime === minTime) labels.push('가장 빠름');
+  if (route.fare === minFare) labels.push('저렴함');
+  if (route.walkingDistance === minWalk) labels.push('도보 적음');
+  if (route.transfers === minTransfers) labels.push('환승 적음');
+  if (route.walkingDistance <= 600 && route.transfers <= 1) labels.push('초행자 추천');
+
+  return Array.from(new Set(labels)).slice(0, 4);
+}
+
 export function RouteList({
   routes,
   selectedRouteId,
@@ -37,6 +56,7 @@ export function RouteList({
 
       {routes.map((route) => {
         const active = route.id === selectedRouteId;
+        const highlights = getRouteHighlights(route, routes);
 
         return (
           <Pressable
@@ -45,10 +65,10 @@ export function RouteList({
             onPress={() => onSelectRoute(route.id)}
           >
             <View style={styles.routeHeader}>
-              <View>
+              <View style={styles.routeTitleWrap}>
                 <Text style={styles.routeTitle}>추천 {route.rank}순위</Text>
                 <Text style={styles.routeMeta}>
-                  {route.travelTime}분 - 환승 {route.transfers}회 -{' '}
+                  {route.travelTime}분 · 환승 {route.transfers}회 ·{' '}
                   {route.fare.toLocaleString()}원
                 </Text>
               </View>
@@ -58,7 +78,19 @@ export function RouteList({
                 color={active ? COLORS.teal : COLORS.muted}
               />
             </View>
-            <Text style={styles.routeReason}>{route.reason}</Text>
+
+            {highlights.length > 0 ? (
+              <View style={styles.badgeRow}>
+                {highlights.map((label) => (
+                  <View key={label} style={[styles.badge, active ? styles.activeBadge : null]}>
+                    <Text style={[styles.badgeText, active ? styles.activeBadgeText : null]}>
+                      {label}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+
             <View style={styles.routeFooter}>
               <Text style={styles.walkingText}>
                 도보 {route.walkingDistance.toLocaleString()}m
@@ -112,7 +144,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 10,
+  },
+  routeTitleWrap: {
+    flex: 1,
+    paddingRight: 12,
   },
   routeTitle: {
     color: COLORS.ink,
@@ -125,11 +161,28 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginTop: 4,
   },
-  routeReason: {
-    color: COLORS.text,
-    fontSize: 13,
-    lineHeight: 19,
-    marginBottom: 8,
+  badgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 10,
+  },
+  badge: {
+    borderRadius: 999,
+    backgroundColor: COLORS.card,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+  activeBadge: {
+    backgroundColor: '#DDF8F5',
+  },
+  badgeText: {
+    color: COLORS.muted,
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  activeBadgeText: {
+    color: COLORS.teal,
   },
   routeFooter: {
     flexDirection: 'row',

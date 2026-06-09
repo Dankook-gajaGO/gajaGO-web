@@ -54,7 +54,7 @@ function collectFromCategories(response: SafeFoodApiRecord): CollectedFoodRecord
     if (!isRecord(categoryValue)) return [];
 
     const category = readText(categoryValue, CATEGORY_KEYS, `카테고리 ${categoryIndex + 1}`);
-    const foodItems = categoryValue.foodNames ?? categoryValue.foods ?? categoryValue.items ?? categoryValue.list;
+    const foodItems = categoryValue.foods ?? categoryValue.items ?? categoryValue.list ?? categoryValue.foodNames;
 
     if (!Array.isArray(foodItems)) return [{ category, item: categoryValue }];
 
@@ -96,23 +96,18 @@ function collectFoodRecords(response: SafeFoodListResponse): CollectedFoodRecord
 
 export function normalizeSafeFoodResponse(
   response: SafeFoodListResponse,
-  selectedAllergies: string[]
+  _selectedAllergies: string[]
 ): FoodRecommendation[] {
-  const defaultNote =
-    selectedAllergies.length > 0
-      ? `${selectedAllergies.join(', ')} 알레르기 조건을 제외해 받은 음식입니다.`
-      : '선택한 알레르기 조건 없이 받은 음식입니다.';
-
   return collectFoodRecords(response).map(({ category, item }, index) => {
     const name = readText(item, NAME_KEYS, `추천 음식 ${index + 1}`);
     const foodCategory = readText(item, CATEGORY_KEYS, category ?? '추천 음식');
-    const note = readText(item, NOTE_KEYS, defaultNote);
+    const note = readText(item, NOTE_KEYS);
 
     return {
       id: readText(item, ID_KEYS, `${category ?? 'food'}-${index}-${name}`),
       name,
       category: foodCategory,
-      tags: [foodCategory, '추천'].filter(Boolean),
+      tags: [foodCategory].filter(Boolean),
       note,
     };
   });

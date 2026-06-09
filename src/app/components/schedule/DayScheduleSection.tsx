@@ -13,7 +13,7 @@ export function DayScheduleSection({ places, onRemovePlace }: DayScheduleSection
     return (
       <View style={styles.emptyCard}>
         <Text style={styles.emptyTitle}>등록된 일정이 없습니다</Text>
-        <Text style={styles.emptyText}>선택한 날짜에 저장된 장소가 없습니다.</Text>
+        <Text style={styles.emptyText}>선택한 날짜에 메모나 행사를 추가해보세요.</Text>
       </View>
     );
   }
@@ -22,19 +22,24 @@ export function DayScheduleSection({ places, onRemovePlace }: DayScheduleSection
     <View>
       {places.map((place, index) => (
         <View key={`${place.id}-${index}`} style={[styles.placeCard, shadow.card]}>
+          <Pressable
+            style={styles.removeButton}
+            onPress={() => onRemovePlace(place.id)}
+            accessibilityRole="button"
+            accessibilityLabel={`${place.name} 일정 삭제`}
+          >
+            <Feather name="x" size={17} color={COLORS.muted} />
+          </Pressable>
           <View style={styles.orderBadge}>
             <Text style={styles.orderText}>{index + 1}</Text>
           </View>
           <View style={styles.placeTextWrap}>
             <Text style={styles.placeName}>{place.name}</Text>
             <Text style={styles.placeMeta}>{place.category}</Text>
-            <Text style={styles.address} numberOfLines={1}>
+            <Text style={styles.address} numberOfLines={2}>
               {place.address}
             </Text>
           </View>
-          <Pressable style={styles.removeButton} onPress={() => onRemovePlace(place.id)}>
-            <Feather name="x" size={18} color={COLORS.muted} />
-          </Pressable>
         </View>
       ))}
     </View>
@@ -65,6 +70,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     backgroundColor: COLORS.white,
     padding: 14,
+    paddingRight: 48,
     marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -100,15 +106,19 @@ const styles = StyleSheet.create({
   address: {
     color: COLORS.muted,
     fontSize: 12,
+    lineHeight: 17,
     marginTop: 4,
   },
   removeButton: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.md,
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 1,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: COLORS.card,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 8,
   },
 });

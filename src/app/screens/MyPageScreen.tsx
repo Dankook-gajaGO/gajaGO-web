@@ -21,7 +21,7 @@ const rows: Array<{
 }> = [
   {
     label: '저장한 행사',
-    caption: '관심 있는 행사를 저장 목록에서 확인합니다.',
+    caption: '관심 있는 행사를 확인하고 캘린더에 추가합니다.',
     icon: 'heart',
     action: 'saved',
   },

@@ -5,3 +5,4 @@ export * from './festival';
 export * from './food';
 export * from './serverTime';
 export * from './transport';
+export * from './userContent';

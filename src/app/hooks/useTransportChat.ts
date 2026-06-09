@@ -15,6 +15,7 @@ import {
   saveLatestTransportSession,
   type TransportChatMessage,
 } from '../data/transportSession';
+import type { TransportRouteHistoryItem } from '../data/transportHistory';
 
 export type CandidateKind = 'departure' | 'destination';
 
@@ -240,6 +241,31 @@ export function useTransportChat() {
     setErrorMessage('');
   };
 
+  const restoreHistoryItem = (item: TransportRouteHistoryItem) => {
+    setMessage('');
+    setRequestId(item.requestId);
+    setDepartureCandidates([item.departure]);
+    setDestinationCandidates([item.destination]);
+    setSelectedDeparture(item.departure);
+    setSelectedDestination(item.destination);
+    setRoutes([item.route]);
+    setSelectedRouteId(item.route.id);
+    setErrorMessage('');
+    setMessages([
+      initialTransportMessages[0],
+      {
+        id: `history-user-${Date.now()}`,
+        role: 'user',
+        text: `${item.departure.name}에서 ${item.destination.name}까지 최근 저장 경로`,
+      },
+      {
+        id: `history-assistant-${Date.now()}`,
+        role: 'assistant',
+        text: '최근 선택했던 교통 경로를 다시 불러왔습니다. 상세 이동 순서와 일정 저장을 확인해보세요.',
+      },
+    ]);
+  };
+
   return {
     message,
     setMessage,
@@ -248,6 +274,7 @@ export function useTransportChat() {
     destinationCandidates,
     selectedDeparture,
     selectedDestination,
+    requestId,
     routes,
     selectedRoute,
     selectedRouteId,
@@ -260,5 +287,6 @@ export function useTransportChat() {
     chooseCandidate,
     sendMessage,
     resetSession,
+    restoreHistoryItem,
   };
 }

@@ -16,7 +16,7 @@ export function DateSummaryCard({ label, count, onPress }: DateSummaryCardProps)
       </View>
       <View style={styles.textWrap}>
         <Text style={styles.label}>{label}</Text>
-        <Text style={styles.count}>일정 장소 {count}개</Text>
+        <Text style={styles.count}>일정 {count}개</Text>
       </View>
       <Feather name="chevron-down" size={18} color={COLORS.muted} />
     </Pressable>
