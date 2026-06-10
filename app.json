@@ -11,7 +11,21 @@
       "edgeToEdgeEnabled": true
     },
     "plugins": [
-      "expo-font"
-    ]
+      "expo-font",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "5cc4f2cf-022d-4961-b80b-fa608009993d"
+      }
+    },
+    "owner": "lwj117"
   }
 }
