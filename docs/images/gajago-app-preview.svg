@@ -1,0 +1,241 @@
+<svg width="1400" height="1180" viewBox="0 0 1400 1180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1400" y2="1180" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ECFFFB"/>
+      <stop offset="0.52" stop-color="#F8FAFC"/>
+      <stop offset="1" stop-color="#EAF4FF"/>
+    </linearGradient>
+    <linearGradient id="teal" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#22D3C5"/>
+      <stop offset="1" stop-color="#079CA0"/>
+    </linearGradient>
+    <filter id="phoneShadow" x="-30%" y="-20%" width="160%" height="150%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#0F172A" flood-opacity="0.16"/>
+    </filter>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#0F172A" flood-opacity="0.12"/>
+    </filter>
+    <style>
+      .font { font-family: Pretendard, "Apple SD Gothic Neo", "Segoe UI", sans-serif; }
+      .title { fill: #111827; font-size: 44px; font-weight: 850; }
+      .sub { fill: #64748B; font-size: 21px; font-weight: 550; }
+      .label { fill: #111827; font-size: 20px; font-weight: 850; }
+      .small { fill: #6B7280; font-size: 14px; font-weight: 650; }
+      .tiny { fill: #9CA3AF; font-size: 12px; font-weight: 700; }
+      .tealText { fill: #0EA5A3; font-weight: 850; }
+    </style>
+  </defs>
+
+  <rect width="1400" height="1180" rx="42" fill="url(#bg)"/>
+  <circle cx="1280" cy="120" r="220" fill="#14B8A6" opacity="0.09"/>
+  <circle cx="110" cy="1040" r="260" fill="#3B82F6" opacity="0.08"/>
+
+  <text x="72" y="84" class="font title">실제 시연 흐름 기반 화면 구성</text>
+  <text x="72" y="124" class="font sub">홈에서 행사와 빠른 기능을 탐색하고, 교통 챗봇·음식 알레르기·행사 상세·일정 저장으로 이어지는 모바일 경험입니다.</text>
+
+  <g class="font">
+    <rect x="72" y="164" width="256" height="44" rx="22" fill="#0EA5A3"/>
+    <text x="104" y="193" fill="white" font-size="18" font-weight="850">Expo React Native</text>
+    <rect x="346" y="164" width="204" height="44" rx="22" fill="#111827"/>
+    <text x="378" y="193" fill="white" font-size="18" font-weight="850">Gemini + TMAP</text>
+    <rect x="568" y="164" width="188" height="44" rx="22" fill="#FFFFFF" stroke="#D1D5DB"/>
+    <text x="600" y="193" fill="#111827" font-size="18" font-weight="850">Festival API</text>
+    <rect x="774" y="164" width="206" height="44" rx="22" fill="#FFFFFF" stroke="#D1D5DB"/>
+    <text x="806" y="193" fill="#111827" font-size="18" font-weight="850">Allergy Filter</text>
+  </g>
+
+  <g class="font" transform="translate(54 250)">
+    <!-- Home -->
+    <g transform="translate(0 0)" filter="url(#phoneShadow)">
+      <rect width="202" height="396" rx="34" fill="#0F172A"/>
+      <rect x="10" y="12" width="182" height="372" rx="26" fill="#FFFFFF"/>
+      <text x="26" y="44" fill="#0EA5A3" font-size="22" font-weight="900">가자GO</text>
+      <circle cx="168" cy="35" r="14" fill="#F8FAFC" stroke="#E5E7EB"/>
+      <text x="22" y="86" class="label">행사 &amp; 축제</text>
+      <rect x="22" y="102" width="145" height="82" rx="18" fill="#111827"/>
+      <rect x="34" y="114" width="44" height="24" rx="12" fill="#F59E0B"/>
+      <text x="43" y="131" fill="#FFFFFF" font-size="10" font-weight="850">충북</text>
+      <text x="34" y="157" fill="#FFFFFF" font-size="15" font-weight="850">음성품바축제</text>
+      <text x="34" y="176" fill="#D1D5DB" font-size="11" font-weight="700">2026.06.10 - 06.14</text>
+      <text x="22" y="220" class="label">빠른 기능</text>
+      <rect x="22" y="236" width="48" height="52" rx="14" fill="#EFF6FF" stroke="#BFDBFE"/>
+      <rect x="34" y="246" width="24" height="24" rx="8" fill="#0284C7"/>
+      <text x="28" y="279" fill="#111827" font-size="10" font-weight="850">편의시설</text>
+      <rect x="78" y="236" width="48" height="52" rx="14" fill="#F5F3FF" stroke="#DDD6FE"/>
+      <rect x="90" y="246" width="24" height="24" rx="8" fill="#8B5CF6"/>
+      <text x="84" y="279" fill="#111827" font-size="10" font-weight="850">교통 경로</text>
+      <rect x="134" y="236" width="48" height="52" rx="14" fill="#FFF7ED" stroke="#FED7AA"/>
+      <rect x="146" y="246" width="24" height="24" rx="8" fill="#F59E0B"/>
+      <text x="151" y="279" fill="#111827" font-size="10" font-weight="850">음식</text>
+      <rect x="22" y="306" width="72" height="46" rx="14" fill="#FFFFFF" stroke="#E5E7EB"/>
+      <text x="36" y="334" fill="#111827" font-size="13" font-weight="850">캘린더</text>
+      <rect x="104" y="306" width="72" height="46" rx="14" fill="#FFFFFF" stroke="#E5E7EB"/>
+      <text x="124" y="334" fill="#111827" font-size="13" font-weight="850">내 일정</text>
+      <text x="54" y="424" class="label">홈</text>
+    </g>
+
+    <!-- Transport chat -->
+    <g transform="translate(226 0)" filter="url(#phoneShadow)">
+      <rect width="202" height="396" rx="34" fill="#0F172A"/>
+      <rect x="10" y="12" width="182" height="372" rx="26" fill="#FFFFFF"/>
+      <text x="73" y="44" class="label">교통 경로</text>
+      <rect x="10" y="58" width="182" height="90" fill="#E7F7F5"/>
+      <path d="M101 74L116 110L102 103L88 110L101 74Z" fill="#0EA5A3"/>
+      <text x="72" y="132" fill="#111827" font-size="17" font-weight="850">교통 챗봇</text>
+      <rect x="22" y="166" width="158" height="22" rx="11" fill="#F5F7F9"/>
+      <text x="31" y="181" fill="#111827" font-size="10" font-weight="800">서울역에서 경복궁까지 어떻게 가?</text>
+      <rect x="22" y="198" width="158" height="22" rx="11" fill="#F5F7F9"/>
+      <text x="31" y="213" fill="#111827" font-size="10" font-weight="800">환승 적은 경로 알려줘</text>
+      <rect x="22" y="244" width="118" height="38" rx="14" fill="#F5F7F9"/>
+      <text x="34" y="267" fill="#6B7280" font-size="11" font-weight="750">후보지를 찾은 뒤 경로를 추천합니다.</text>
+      <rect x="52" y="296" width="128" height="42" rx="16" fill="#0EA5A3"/>
+      <text x="66" y="318" fill="#FFFFFF" font-size="11" font-weight="850">단국대에서 서울역 가려면?</text>
+      <rect x="22" y="354" width="126" height="22" rx="11" fill="#F5F7F9"/>
+      <circle cx="164" cy="365" r="15" fill="#32C7C7"/>
+      <text x="38" y="424" class="label">교통 챗봇</text>
+    </g>
+
+    <!-- Route cards -->
+    <g transform="translate(452 0)" filter="url(#phoneShadow)">
+      <rect width="202" height="396" rx="34" fill="#0F172A"/>
+      <rect x="10" y="12" width="182" height="372" rx="26" fill="#FFFFFF"/>
+      <text x="22" y="48" class="label">추천 경로</text>
+      <rect x="22" y="74" width="158" height="68" rx="18" fill="#FFFFFF" stroke="#E5E7EB"/>
+      <text x="38" y="102" fill="#111827" font-size="16" font-weight="900">추천 1순위</text>
+      <text x="38" y="122" fill="#9CA3AF" font-size="11" font-weight="750">79분 · 환승 2회 · 5,500원</text>
+      <text x="38" y="137" fill="#0EA5A3" font-size="11" font-weight="900">도보 1,587m</text>
+      <rect x="22" y="158" width="158" height="68" rx="18" fill="#FFFFFF" stroke="#E5E7EB"/>
+      <text x="38" y="186" fill="#111827" font-size="16" font-weight="900">추천 2순위</text>
+      <text x="38" y="206" fill="#9CA3AF" font-size="11" font-weight="750">84분 · 환승 3회 · 4,900원</text>
+      <text x="38" y="221" fill="#0EA5A3" font-size="11" font-weight="900">도보 581m</text>
+      <rect x="22" y="242" width="158" height="68" rx="18" fill="#FFFFFF" stroke="#E5E7EB"/>
+      <text x="38" y="270" fill="#111827" font-size="16" font-weight="900">추천 3순위</text>
+      <text x="38" y="290" fill="#9CA3AF" font-size="11" font-weight="750">141분 · 환승 3회 · 6,400원</text>
+      <text x="38" y="305" fill="#0EA5A3" font-size="11" font-weight="900">도보 2,644m</text>
+      <rect x="22" y="354" width="126" height="22" rx="11" fill="#F5F7F9"/>
+      <circle cx="164" cy="365" r="15" fill="#32C7C7"/>
+      <text x="46" y="424" class="label">경로 후보</text>
+    </g>
+
+    <!-- Route detail -->
+    <g transform="translate(678 0)" filter="url(#phoneShadow)">
+      <rect width="202" height="396" rx="34" fill="#0F172A"/>
+      <rect x="10" y="12" width="182" height="372" rx="26" fill="#FFFFFF"/>
+      <rect x="22" y="32" width="158" height="320" rx="18" fill="#FFFFFF" stroke="#E5E7EB"/>
+      <text x="36" y="62" class="label">선택한 경로 상세</text>
+      <text x="36" y="82" fill="#9CA3AF" font-size="11" font-weight="750">79분 · 환승 2회 · 도보 1,587m</text>
+      <rect x="36" y="98" width="48" height="26" rx="13" fill="#FFFFFF" stroke="#E5E7EB"/>
+      <text x="47" y="115" fill="#111827" font-size="10" font-weight="850">지도 열기</text>
+      <rect x="92" y="98" width="58" height="26" rx="13" fill="#0EA5A3"/>
+      <text x="104" y="115" fill="#FFFFFF" font-size="10" font-weight="850">일정 저장</text>
+      <line x1="54" y1="154" x2="54" y2="318" stroke="#E5E7EB" stroke-width="2"/>
+      <circle cx="54" cy="154" r="12" fill="#DDFBF7"/>
+      <circle cx="54" cy="204" r="12" fill="#FEF3C7"/>
+      <circle cx="54" cy="254" r="12" fill="#F3E8FF"/>
+      <circle cx="54" cy="304" r="12" fill="#DBEAFE"/>
+      <text x="76" y="156" class="tiny">STEP 1</text>
+      <text x="76" y="174" fill="#4B5563" font-size="11" font-weight="800">도보 2분 이동</text>
+      <text x="76" y="206" class="tiny">STEP 2</text>
+      <text x="76" y="224" fill="#4B5563" font-size="11" font-weight="800">BUS 4개 정류장</text>
+      <text x="76" y="256" class="tiny">STEP 4</text>
+      <text x="76" y="274" fill="#4B5563" font-size="11" font-weight="800">SUBWAY 23분</text>
+      <text x="76" y="306" class="tiny">STEP 7</text>
+      <text x="76" y="324" fill="#4B5563" font-size="11" font-weight="800">도착지까지 도보</text>
+      <text x="45" y="424" class="label">상세 이동</text>
+    </g>
+
+    <!-- Allergy -->
+    <g transform="translate(904 0)" filter="url(#phoneShadow)">
+      <rect width="202" height="396" rx="34" fill="#0F172A"/>
+      <rect x="10" y="12" width="182" height="372" rx="26" fill="#F3F4F6"/>
+      <text x="58" y="44" class="label">음식 알레르기</text>
+      <rect x="22" y="70" width="158" height="28" rx="14" fill="#FFFFFF" stroke="#E5E7EB"/>
+      <text x="42" y="88" fill="#9CA3AF" font-size="11" font-weight="750">음식 또는 분류 검색</text>
+      <text x="22" y="124" class="label">피해야 하는 성분</text>
+      <g fill="#FFFFFF" stroke="#E5E7EB">
+        <rect x="22" y="142" width="42" height="24" rx="12"/>
+        <rect x="72" y="142" width="42" height="24" rx="12"/>
+        <rect x="122" y="142" width="42" height="24" rx="12"/>
+        <rect x="22" y="176" width="48" height="24" rx="12"/>
+        <rect x="78" y="176" width="42" height="24" rx="12"/>
+        <rect x="128" y="176" width="52" height="24" rx="12"/>
+      </g>
+      <text x="36" y="158" fill="#111827" font-size="10" font-weight="850">난류</text>
+      <text x="86" y="158" fill="#111827" font-size="10" font-weight="850">우유</text>
+      <text x="138" y="158" fill="#111827" font-size="10" font-weight="850">밀</text>
+      <text x="35" y="192" fill="#111827" font-size="10" font-weight="850">견과류</text>
+      <text x="92" y="192" fill="#111827" font-size="10" font-weight="850">대두</text>
+      <text x="140" y="192" fill="#111827" font-size="10" font-weight="850">해산물</text>
+      <rect x="22" y="220" width="158" height="42" rx="16" fill="#FFFFFF"/>
+      <text x="36" y="244" fill="#111827" font-size="15" font-weight="900">추천 음식 99개</text>
+      <rect x="22" y="276" width="158" height="76" rx="18" fill="#FFFFFF" stroke="#E5E7EB"/>
+      <text x="38" y="304" fill="#111827" font-size="16" font-weight="900">오징어불고기</text>
+      <rect x="38" y="316" width="126" height="22" rx="10" fill="#F5F7F9"/>
+      <text x="50" y="331" fill="#0EA5A3" font-size="10" font-weight="900">성분</text>
+      <text x="31" y="424" class="label">알레르기 필터</text>
+    </g>
+
+    <!-- Event list -->
+    <g transform="translate(1130 0)" filter="url(#phoneShadow)">
+      <rect width="202" height="396" rx="34" fill="#0F172A"/>
+      <rect x="10" y="12" width="182" height="372" rx="26" fill="#FFFFFF"/>
+      <text x="86" y="44" class="label">행사</text>
+      <rect x="26" y="72" width="64" height="26" rx="13" fill="#FFFFFF" stroke="#E5E7EB"/>
+      <text x="49" y="89" fill="#0EA5A3" font-size="11" font-weight="900">목록</text>
+      <rect x="100" y="72" width="76" height="26" rx="13" fill="#F5F7F9"/>
+      <text x="116" y="89" fill="#6B7280" font-size="11" font-weight="850">서울 캘린더</text>
+      <text x="22" y="122" class="small">지역</text>
+      <rect x="22" y="136" width="44" height="24" rx="12" fill="#FFFFFF" stroke="#E5E7EB"/>
+      <rect x="74" y="136" width="44" height="24" rx="12" fill="#0EA5A3"/>
+      <rect x="126" y="136" width="44" height="24" rx="12" fill="#FFFFFF" stroke="#E5E7EB"/>
+      <text x="88" y="152" fill="#FFFFFF" font-size="10" font-weight="900">경기</text>
+      <text x="22" y="188" class="small">행사 상태</text>
+      <rect x="22" y="202" width="44" height="24" rx="12" fill="#0EA5A3"/>
+      <rect x="74" y="202" width="54" height="24" rx="12" fill="#FFFFFF" stroke="#E5E7EB"/>
+      <text x="36" y="218" fill="#FFFFFF" font-size="10" font-weight="900">전체</text>
+      <g>
+        <rect x="22" y="244" width="38" height="38" rx="10" fill="#DDF4EF"/>
+        <text x="72" y="258" fill="#16A34A" font-size="10" font-weight="900">경기</text>
+        <text x="72" y="276" fill="#111827" font-size="14" font-weight="900">2026 캠핑요리축제</text>
+        <rect x="22" y="302" width="38" height="38" rx="10" fill="#E0F2FE"/>
+        <text x="72" y="316" fill="#16A34A" font-size="10" font-weight="900">경기</text>
+        <text x="72" y="334" fill="#111827" font-size="14" font-weight="900">경기미 김밥페스타</text>
+      </g>
+      <text x="47" y="424" class="label">행사 목록</text>
+    </g>
+  </g>
+
+  <g class="font" transform="translate(86 770)">
+    <text x="0" y="0" class="title" font-size="36">시연 포인트</text>
+    <g transform="translate(0 38)" filter="url(#softShadow)">
+      <rect width="288" height="126" rx="24" fill="#FFFFFF"/>
+      <text x="28" y="42" fill="#0EA5A3" font-size="22" font-weight="900">01. 홈</text>
+      <text x="28" y="75" fill="#111827" font-size="18" font-weight="800">행사 배너와 빠른 기능</text>
+      <text x="28" y="101" fill="#6B7280" font-size="15" font-weight="650">편의시설·교통·음식·일정 진입</text>
+    </g>
+    <g transform="translate(322 38)" filter="url(#softShadow)">
+      <rect width="288" height="126" rx="24" fill="#FFFFFF"/>
+      <text x="28" y="42" fill="#0EA5A3" font-size="22" font-weight="900">02. 교통</text>
+      <text x="28" y="75" fill="#111827" font-size="18" font-weight="800">자연어 입력 후 경로 추천</text>
+      <text x="28" y="101" fill="#6B7280" font-size="15" font-weight="650">시간·환승·요금·도보 비교</text>
+    </g>
+    <g transform="translate(644 38)" filter="url(#softShadow)">
+      <rect width="288" height="126" rx="24" fill="#FFFFFF"/>
+      <text x="28" y="42" fill="#0EA5A3" font-size="22" font-weight="900">03. 음식</text>
+      <text x="28" y="75" fill="#111827" font-size="18" font-weight="800">알레르기 성분 제외</text>
+      <text x="28" y="101" fill="#6B7280" font-size="15" font-weight="650">밀·해산물 선택 시 46개 추천</text>
+    </g>
+    <g transform="translate(966 38)" filter="url(#softShadow)">
+      <rect width="288" height="126" rx="24" fill="#FFFFFF"/>
+      <text x="28" y="42" fill="#0EA5A3" font-size="22" font-weight="900">04. 행사</text>
+      <text x="28" y="75" fill="#111827" font-size="18" font-weight="800">지역·상태 필터와 상세 화면</text>
+      <text x="28" y="101" fill="#6B7280" font-size="15" font-weight="650">기간·요금·위치·문의 확인</text>
+    </g>
+
+    <g transform="translate(0 218)">
+      <rect width="1254" height="92" rx="26" fill="#0F172A"/>
+      <text x="34" y="38" fill="#2DD4BF" font-size="20" font-weight="900">Demo Flow</text>
+      <text x="34" y="66" fill="#FFFFFF" font-size="25" font-weight="850">홈 → 교통 챗봇 → 추천 경로 → 경로 상세 저장 → 음식 알레르기 → 행사 목록 → 행사 상세</text>
+    </g>
+  </g>
+</svg>
