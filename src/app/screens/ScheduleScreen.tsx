@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Feather from '@expo/vector-icons/Feather';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { LOGIN_REQUIRED_MESSAGE, ensureLoggedIn, isLoggedIn, useLoginPromptOnFocus } from '../utils/requireLogin';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -50,6 +51,7 @@ function toPlace(item: ScheduleItemApi): Place {
 }
 
 export default function ScheduleScreen({ navigation, route }: Props) {
+  useLoginPromptOnFocus(navigation);
   const country = route.params?.country ?? 'korea';
   const routeDate = route.params?.date;
   const initialDate = routeDate ?? getFallbackTodayKey();
@@ -84,8 +86,12 @@ export default function ScheduleScreen({ navigation, route }: Props) {
   }, [routeDate]);
 
   const loadItems = useCallback(async () => {
-    setIsLoadingItems(true);
     setStatusMessage('');
+    if (!(await isLoggedIn())) {
+      setStatusMessage(LOGIN_REQUIRED_MESSAGE);
+      return;
+    }
+    setIsLoadingItems(true);
 
     try {
       const response = await getScheduleItems(selectedDate);
@@ -109,7 +115,7 @@ export default function ScheduleScreen({ navigation, route }: Props) {
 
   const addSchedule = async () => {
     const title = draft.trim();
-    if (!title || isSaving) return;
+    if (!title || isSaving || !(await ensureLoggedIn(navigation))) return;
 
     setIsSaving(true);
     setStatusMessage('');

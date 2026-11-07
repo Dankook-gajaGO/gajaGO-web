@@ -1,9 +1,6 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { PlaceCandidate, TransportRoute } from '../api';
+import { apiRequest, getAuthToken, hydrateAuthToken, type PlaceCandidate, type TransportRoute } from '../api';
 
-const STORAGE_KEY = 'gajago.transport.recentRoutes';
-const MAX_RECENT_ROUTES = 5;
-
+// 최근 교통 경로는 회원별로 서버 DB에 저장 (다른 기기·재설치 후에도 유지). 비회원은 기록하지 않음
 export interface TransportRouteHistoryItem {
   id: string;
   savedAt: string;
@@ -13,44 +10,16 @@ export interface TransportRouteHistoryItem {
   route: TransportRoute;
 }
 
-function buildHistoryId(
-  requestId: number | null,
-  departure: PlaceCandidate,
-  destination: PlaceCandidate,
-  route: TransportRoute
-) {
-  return [
-    requestId ?? 'local',
-    route.id,
-    departure.name,
-    destination.name,
-    route.travelTime,
-    route.fare,
-  ].join('|');
-}
+const HISTORY_PATH = '/api/transport/history';
 
-function isHistoryItem(value: unknown): value is TransportRouteHistoryItem {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-
-  const record = value as Record<string, unknown>;
-  return (
-    typeof record.id === 'string' &&
-    typeof record.savedAt === 'string' &&
-    Boolean(record.departure) &&
-    Boolean(record.destination) &&
-    Boolean(record.route)
-  );
+async function isMember() {
+  return Boolean(getAuthToken() ?? (await hydrateAuthToken()));
 }
 
 export async function getRecentTransportRoutes() {
+  if (!(await isMember())) return [];
   try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return [];
-
-    return parsed.filter(isHistoryItem).slice(0, MAX_RECENT_ROUTES);
+    return await apiRequest<TransportRouteHistoryItem[]>(HISTORY_PATH);
   } catch {
     return [];
   }
@@ -62,25 +31,14 @@ export async function saveRecentTransportRoute(
   destination: PlaceCandidate,
   route: TransportRoute
 ) {
-  const nextItem: TransportRouteHistoryItem = {
-    id: buildHistoryId(requestId, departure, destination, route),
-    savedAt: new Date().toISOString(),
-    requestId,
-    departure,
-    destination,
-    route,
-  };
-
-  const current = await getRecentTransportRoutes();
-  const nextItems = [nextItem, ...current.filter((item) => item.id !== nextItem.id)].slice(
-    0,
-    MAX_RECENT_ROUTES
-  );
-
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(nextItems));
-  return nextItems;
+  if (!(await isMember())) return [];
+  return apiRequest<TransportRouteHistoryItem[]>(HISTORY_PATH, {
+    method: 'POST',
+    body: { requestId, departure, destination, route },
+  });
 }
 
 export async function clearRecentTransportRoutes() {
-  await AsyncStorage.removeItem(STORAGE_KEY);
+  if (!(await isMember())) return;
+  await apiRequest<unknown>(HISTORY_PATH, { method: 'DELETE' });
 }

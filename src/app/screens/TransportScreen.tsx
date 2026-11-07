@@ -40,6 +40,8 @@ import {
 import type { RootStackParamList } from '../routes';
 import { COLORS } from '../theme';
 import { getFallbackTodayKey } from '../utils/date';
+import { useFocusEffect } from '@react-navigation/native';
+import { ensureLoggedIn } from '../utils/requireLogin';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Transport'>;
 
@@ -74,15 +76,24 @@ export default function TransportScreen({ navigation, route }: Props) {
     setTimeout(() => scrollToBottom(), 250);
   }, [scrollToBottom]);
 
-  useEffect(() => {
-    void loadRecentRoutes();
-  }, [loadRecentRoutes]);
+  useFocusEffect(
+    useCallback(() => {
+      void chat.refreshAuth();
+      void loadRecentRoutes();
+    }, [chat.refreshAuth, loadRecentRoutes])
+  );
+
+  // 길찾기 질문은 회원 기록(user_request)으로 남으므로 회원만. 비회원이면 로그인 화면
+  const send = async (text?: string, destination?: PlaceCandidate) => {
+    if (!(await ensureLoggedIn(navigation))) return;
+    await chat.sendMessage(text, destination);
+  };
 
   // 행사 상세의 "길찾기"로 들어오면 그 질문을 바로 보냄 (로그인 확인이 끝난 뒤 한 번만)
   useEffect(() => {
     if (!initialMessage || sentInitialRef.current || !chat.isAuthReady) return;
     sentInitialRef.current = true;
-    void chat.sendMessage(initialMessage, initialDestination);
+    void send(initialMessage, initialDestination);
   }, [initialMessage, initialDestination, chat.isAuthReady, chat.sendMessage]);
 
   useEffect(() => {
@@ -116,7 +127,9 @@ export default function TransportScreen({ navigation, route }: Props) {
       chat.selectedDeparture,
       chat.selectedDestination,
       chat.selectedRoute
-    ).then(setRecentRoutes);
+    )
+      .then(setRecentRoutes)
+      .catch(() => undefined); // 기록 저장 실패는 경로 사용을 막지 않음
   }, [chat.requestId, chat.selectedDeparture, chat.selectedDestination, chat.selectedRoute]);
 
   const chooseCandidate = (kind: CandidateKind) => (candidate: PlaceCandidate) => {
@@ -130,13 +143,18 @@ export default function TransportScreen({ navigation, route }: Props) {
   };
 
   const clearRecentRoutes = async () => {
-    await clearRecentTransportRoutes();
-    setRecentRoutes([]);
-    setRouteStatusMessage('최근 경로를 비웠어요');
+    try {
+      await clearRecentTransportRoutes();
+      setRecentRoutes([]);
+      setRouteStatusMessage('최근 경로를 비웠어요');
+    } catch (error) {
+      setRouteStatusMessage(getApiErrorMessage(error));
+    }
   };
 
   const saveSelectedRouteToSchedule = async () => {
     if (!chat.selectedRoute || !chat.selectedDeparture || !chat.selectedDestination || isSavingSchedule) return;
+    if (!(await ensureLoggedIn(navigation))) return;
 
     setIsSavingSchedule(true);
     setRouteStatusMessage('');
@@ -181,10 +199,10 @@ export default function TransportScreen({ navigation, route }: Props) {
           onSelect={restoreRecentRoute}
           onClear={clearRecentRoutes}
         />
-        <SuggestionList suggestions={transportSuggestions} onSelect={(item) => chat.sendMessage(item)} />
+        <SuggestionList suggestions={transportSuggestions} onSelect={(item) => void send(item)} />
 
         {chat.isAuthReady && !chat.isAuthorized ? (
-          <AuthNotice onLogin={() => navigation.replace('Login')} />
+          <AuthNotice onLogin={() => navigation.navigate('Login', { returnAfterLogin: true })} />
         ) : null}
 
         <ChatMessageList messages={chat.messages} />
@@ -238,7 +256,7 @@ export default function TransportScreen({ navigation, route }: Props) {
         isLoading={chat.isInitialLoading}
         onChangeMessage={chat.setMessage}
         onFocus={scrollToBottomAfterKeyboard}
-        onSend={() => chat.sendMessage()}
+        onSend={() => void send()}
       />
     </KeyboardAvoidingView>
   );

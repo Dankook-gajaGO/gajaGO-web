@@ -180,6 +180,8 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   const parsed = parseBody(text);
 
   if (!response.ok) {
+    // 보낸 토큰이 거절됨 = 만료(7일). 지워야 다음 저장 때 로그인 화면이 뜸
+    if (token && (response.status === 401 || response.status === 403)) await setAuthToken(null);
     throw new ApiError(response.status, getErrorMessage(response.status, response.statusText, parsed), parsed);
   }
 

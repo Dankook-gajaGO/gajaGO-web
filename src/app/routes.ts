@@ -3,8 +3,9 @@ export type CountryKey = 'korea';
 export type RootStackParamList = {
   Splash: undefined;
   Onboarding: undefined;
-  Login: undefined;
-  Signup: undefined;
+  // returnAfterLogin: 저장 등을 하려다 로그인 화면이 뜬 경우. 로그인하면 원래 화면으로 돌아감
+  Login: { returnAfterLogin?: boolean } | undefined;
+  Signup: { returnAfterLogin?: boolean } | undefined;
   Home: undefined;
   Transport:
     | {
