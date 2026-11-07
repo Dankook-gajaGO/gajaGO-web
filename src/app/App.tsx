@@ -1,4 +1,5 @@
-import { NavigationContainer } from '@react-navigation/native';
+import { useEffect } from 'react';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'react-native';
 import AllEventsScreen from './screens/AllEventsScreen';
@@ -21,12 +22,28 @@ import ShowCardScreen from './screens/ShowCardScreen';
 import ExpenseScreen from './screens/ExpenseScreen';
 import type { RootStackParamList } from './routes';
 import { COLORS } from './theme';
+import { onNotificationTap } from './utils/notifications';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 export default function App() {
+  // 알림을 누르면: 행사 알림 -> 행사 상세, 여행 알림 -> 가계부
+  useEffect(
+    () =>
+      onNotificationTap((data) => {
+        if (!navigationRef.isReady()) return;
+        if (data.screen === 'EventDetails' && typeof data.eventId === 'string') {
+          navigationRef.navigate('EventDetails', { eventId: data.eventId });
+        } else if (data.screen === 'Expense') {
+          navigationRef.navigate('Expense');
+        }
+      }),
+    []
+  );
+
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
       <Stack.Navigator
         initialRouteName="Splash"

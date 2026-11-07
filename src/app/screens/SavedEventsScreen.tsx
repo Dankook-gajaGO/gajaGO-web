@@ -17,6 +17,7 @@ import { ToastMessage } from '../components/common/ToastMessage';
 import type { RootStackParamList } from '../routes';
 import { COLORS, radius, shadow } from '../theme';
 import { getFallbackTodayKey } from '../utils/date';
+import { cancelFestivalReminders } from '../utils/notifications';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SavedEvents'>;
 
@@ -70,6 +71,7 @@ export default function SavedEventsScreen({ navigation }: Props) {
 
     try {
       await deleteSavedFestival(event.contentId);
+      void cancelFestivalReminders(event.contentId);
       setEvents((items) => items.filter((item) => item.contentId !== event.contentId));
       setStatusMessage('삭제했어요');
     } catch (error) {
