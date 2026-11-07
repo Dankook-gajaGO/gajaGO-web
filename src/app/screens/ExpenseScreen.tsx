@@ -51,6 +51,22 @@ if (splitAmount(10000, 3) !== 3340 || splitAmount(0, 2) !== 0 || splitAmount(500
   throw new Error('splitAmount self-check failed');
 }
 
+// 'YYYY-MM-DD' 를 delta 일 이동 (시간대 영향 없게 로컬 날짜로 계산)
+export function shiftDate(date: string, delta: number) {
+  const [y, m, d] = date.split('-').map(Number);
+  const next = new Date(y, m - 1, d + delta);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${next.getFullYear()}-${pad(next.getMonth() + 1)}-${pad(next.getDate())}`;
+}
+// self-check: 월말·연말 넘김
+if (shiftDate('2026-11-30', 1) !== '2026-12-01' || shiftDate('2026-01-01', -1) !== '2025-12-31') {
+  throw new Error('shiftDate self-check failed');
+}
+
+// 최신 날짜가 위로
+const sortExpenses = (list: ExpenseItem[]) =>
+  [...list].sort((a, b) => (a.spentOn === b.spentOn ? b.id - a.id : a.spentOn < b.spentOn ? 1 : -1));
+
 function dayLabel(date: string, today: string) {
   if (date === today) return '오늘';
   const [, m, d] = date.split('-');
@@ -81,6 +97,7 @@ export default function ExpenseScreen({ navigation }: Props) {
   const [draftCategory, setDraftCategory] = useState(CATEGORIES[0].name);
   const [sheetMessage, setSheetMessage] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [draftDate, setDraftDate] = useState(getFallbackTodayKey());
 
   const load = useCallback(async () => {
     const member = await isLoggedIn();
@@ -122,6 +139,7 @@ export default function ExpenseScreen({ navigation }: Props) {
     if (!(await ensureLoggedIn(navigation))) return;
     setDraftAmount(0);
     setDraftTitle('');
+    setDraftDate(today);
     setSheetMessage('');
     setSheet('add');
   };
@@ -132,6 +150,7 @@ export default function ExpenseScreen({ navigation }: Props) {
     setDraftAmount(item.amount);
     setDraftTitle(detailOf(item));
     setDraftCategory(item.category);
+    setDraftDate(item.spentOn);
     setSheetMessage('');
     setSheet('edit');
   };
@@ -154,13 +173,13 @@ export default function ExpenseScreen({ navigation }: Props) {
     }
     try {
       const title = draftTitle.trim() || draftCategory; // 세부 내용을 비우면 분류 이름으로
-      const body = { title, amount: draftAmount, category: draftCategory };
+      const body = { spentOn: draftDate, title, amount: draftAmount, category: draftCategory };
       if (sheet === 'edit' && editingId !== null) {
         const updated = await updateExpense(editingId, body);
-        setItems((current) => current.map((i) => (i.id === updated.id ? updated : i)));
+        setItems((current) => sortExpenses(current.map((i) => (i.id === updated.id ? updated : i))));
       } else {
-        const created = await addExpense({ spentOn: today, ...body });
-        setItems((current) => [created, ...current]);
+        const created = await addExpense(body);
+        setItems((current) => sortExpenses([created, ...current]));
       }
       setSheet(null);
     } catch (error) {
@@ -436,6 +455,23 @@ export default function ExpenseScreen({ navigation }: Props) {
 
           {sheet === 'add' || sheet === 'edit' ? (
             <>
+              <View style={styles.dateRow}>
+                <Pressable style={styles.dateArrow} onPress={() => setDraftDate((d) => shiftDate(d, -1))} accessibilityLabel="전날">
+                  <Feather name="chevron-left" size={18} color={COLORS.ink} />
+                </Pressable>
+                <Text style={styles.dateText}>
+                  {dayLabel(draftDate, today)}
+                  {draftDate !== today ? '' : ` · ${Number(today.split('-')[1])}월 ${Number(today.split('-')[2])}일`}
+                </Text>
+                <Pressable style={styles.dateArrow} onPress={() => setDraftDate((d) => shiftDate(d, 1))} accessibilityLabel="다음날">
+                  <Feather name="chevron-right" size={18} color={COLORS.ink} />
+                </Pressable>
+                {draftDate !== today ? (
+                  <Pressable style={styles.todayChip} onPress={() => setDraftDate(today)} accessibilityRole="button">
+                    <Text style={styles.todayChipText}>오늘</Text>
+                  </Pressable>
+                ) : null}
+              </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sheetChips}>
                 {CATEGORIES.map((c) => {
                   const on = c.name === draftCategory;
@@ -564,4 +600,9 @@ const styles = StyleSheet.create({
   chipTextOn: { color: COLORS.white },
   titleInput: { minHeight: 46, borderRadius: radius.md, backgroundColor: COLORS.card, paddingHorizontal: 14, marginTop: 10, marginBottom: 6, color: COLORS.ink, fontSize: 15 },
   sheetCta: { marginTop: 10 },
+  dateRow: { flexDirection: 'row', alignItems: 'center', marginTop: 14 },
+  dateArrow: { width: 34, height: 34, borderRadius: 17, backgroundColor: COLORS.card, alignItems: 'center', justifyContent: 'center' },
+  dateText: { color: COLORS.ink, fontSize: 15, fontWeight: '800', marginHorizontal: 12, minWidth: 110, textAlign: 'center' },
+  todayChip: { borderRadius: 12, borderWidth: 1, borderColor: COLORS.line, paddingHorizontal: 10, paddingVertical: 5, marginLeft: 4 },
+  todayChipText: { color: COLORS.text, fontSize: 12, fontWeight: '700' },
 });

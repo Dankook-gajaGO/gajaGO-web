@@ -22,6 +22,7 @@ import { holidays, type Memo } from '../data/calendar';
 import type { RootStackParamList } from '../routes';
 import { COLORS } from '../theme';
 import { getFallbackTodayKey, getMonthStartDate } from '../utils/date';
+import { ExpenseDayCard } from '../components/expense/ExpenseDayCard';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CalendarDetail'>;
 
@@ -185,6 +186,7 @@ export default function CalendarDetailScreen({ navigation, route }: Props) {
           <ToastMessage message={statusMessage} tone={statusMessage.includes('못') ? 'error' : 'success'} />
         ) : null}
 
+        <ExpenseDayCard date={selectedDate} onPress={() => navigation.navigate('Expense')} />
         <SelectedDatePanel
           selectedDate={selectedDate}
           memos={selectedMemos}

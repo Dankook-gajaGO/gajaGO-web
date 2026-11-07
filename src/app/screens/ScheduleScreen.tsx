@@ -30,6 +30,7 @@ import {
 import type { RootStackParamList } from '../routes';
 import { COLORS, radius } from '../theme';
 import { getFallbackTodayKey } from '../utils/date';
+import { ExpenseDayCard } from '../components/expense/ExpenseDayCard';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Schedule'>;
 
@@ -168,6 +169,7 @@ export default function ScheduleScreen({ navigation, route }: Props) {
         />
         <View style={styles.spacer} />
         <ScheduleDatePicker days={days} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
+        <ExpenseDayCard date={selectedDate} onPress={() => navigation.navigate('Expense')} />
         <View style={styles.spacer} />
         <ScheduleMapPreview count={items.length} />
 
