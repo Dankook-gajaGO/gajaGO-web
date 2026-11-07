@@ -16,7 +16,7 @@ export type FacilityCoords = {
 export const INITIAL_FACILITY_SIZE = 10;
 export const LOAD_MORE_FACILITY_SIZE = 5;
 export const FACILITY_RADIUS_KM = 3;
-export const facilityCategoryTabs = ['전체', ...facilityCategories] as const;
+export const facilityCategoryTabs = ['전체', ...facilityCategories, '환전소'] as const;
 
 export type FacilityCategoryTab = (typeof facilityCategoryTabs)[number];
 
