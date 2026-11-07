@@ -1,12 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import * as Location from 'expo-location';
 import {
   ApiError,
   createTransportInitialRequest,
   getApiErrorMessage,
-  getAuthToken,
   getTransportRoutes,
-  hydrateAuthToken,
   type PlaceCandidate,
   type TransportRoute,
 } from '../api';
@@ -20,7 +18,6 @@ import type { TransportRouteHistoryItem } from '../data/transportHistory';
 
 export type CandidateKind = 'departure' | 'destination';
 
-const authRequiredMessage = '교통 챗봇은 로그인이 필요합니다. 로그인 후 다시 시도해주세요.';
 
 export const transportSuggestions = [
   '여기서 경복궁까지 어떻게 가?',
@@ -77,22 +74,8 @@ export function useTransportChat() {
   const [isInitialLoading, setIsInitialLoading] = useState(false);
   const [isRoutesLoading, setIsRoutesLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [isAuthReady, setIsAuthReady] = useState(() => Boolean(getAuthToken()));
-  const [isAuthorized, setIsAuthorized] = useState(() => Boolean(getAuthToken()));
 
   const selectedRoute = routes.find((route) => route.id === selectedRouteId) ?? null;
-
-  // 로그인 화면에서 돌아왔을 때도 다시 확인할 수 있게 함수로 둠
-  const refreshAuth = useCallback(async () => {
-    const token = getAuthToken() ?? (await hydrateAuthToken());
-    setIsAuthorized(Boolean(token));
-    setIsAuthReady(true);
-    if (token) setErrorMessage((current) => (current === authRequiredMessage ? '' : current));
-  }, []);
-
-  useEffect(() => {
-    void refreshAuth();
-  }, [refreshAuth]);
 
   useEffect(() => {
     const hasSessionData =
@@ -132,29 +115,8 @@ export function useTransportChat() {
     ]);
   };
 
-  const requireAuthToken = async (showChatMessage = false) => {
-    const token = getAuthToken() ?? (await hydrateAuthToken());
-    const authorized = Boolean(token);
-    setIsAuthReady(true);
-    setIsAuthorized(authorized);
-
-    if (!authorized) {
-      setErrorMessage(authRequiredMessage);
-      if (showChatMessage) addAssistantMessage(authRequiredMessage);
-    }
-
-    return authorized;
-  };
-
+  // 길찾기는 비회원도 사용. 기록 저장(최근 경로·일정)만 회원 전용
   const handleTransportError = (error: unknown) => {
-    if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
-      const authMessage = '로그인 인증이 만료되었거나 누락되었습니다. 다시 로그인해주세요.';
-      setIsAuthorized(false);
-      setErrorMessage(authMessage);
-      addAssistantMessage(authMessage);
-      return;
-    }
-
     // 서버가 알려준 이유(예: "출발지를 함께 알려주세요")를 챗봇 답변으로 그대로 보여줌
     const reason = getApiErrorMessage(error);
     setErrorMessage(reason);
@@ -166,7 +128,6 @@ export function useTransportChat() {
     nextDeparture: PlaceCandidate,
     nextDestination: PlaceCandidate
   ) => {
-    if (!(await requireAuthToken())) return;
 
     setIsRoutesLoading(true);
     setErrorMessage('');
@@ -205,7 +166,6 @@ export function useTransportChat() {
     const trimmed = text.trim();
     if (trimmed.length === 0 || isInitialLoading) return;
 
-    if (!(await requireAuthToken(true))) return;
 
     setMessage('');
     setErrorMessage('');
@@ -298,9 +258,6 @@ export function useTransportChat() {
     isInitialLoading,
     isRoutesLoading,
     errorMessage,
-    isAuthReady,
-    isAuthorized,
-    refreshAuth,
     chooseCandidate,
     sendMessage,
     resetSession,
