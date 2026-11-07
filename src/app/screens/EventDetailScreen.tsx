@@ -20,7 +20,6 @@ import type { RootStackParamList } from '../routes';
 import { COLORS, radius } from '../theme';
 import { getFallbackTodayKey } from '../utils/date';
 import { ensureLoggedIn } from '../utils/requireLogin';
-import { buildTaxiCard } from '../utils/cards';
 import { openGooglePlace } from '../utils/maps';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EventDetails'>;
@@ -243,14 +242,6 @@ export default function EventDetailScreen({ navigation, route }: Props) {
                   <Text style={styles.secondaryText}>지도에서 보기</Text>
                 </Pressable>
               ) : null}
-
-              <Pressable
-                style={styles.secondaryButton}
-                onPress={() => navigation.navigate('ShowCard', buildTaxiCard(event.title, event.location))}
-              >
-                <Feather name="credit-card" size={17} color={COLORS.ink} />
-                <Text style={styles.secondaryText}>택시 카드</Text>
-              </Pressable>
 
               {homepageUrl ? (
                 <Pressable style={styles.secondaryButton} onPress={openHomepage}>
