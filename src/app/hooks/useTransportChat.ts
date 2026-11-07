@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import * as Location from 'expo-location';
 import {
   ApiError,
   createTransportInitialRequest,
@@ -22,6 +23,7 @@ export type CandidateKind = 'departure' | 'destination';
 const authRequiredMessage = '교통 챗봇은 로그인이 필요합니다. 로그인 후 다시 시도해주세요.';
 
 export const transportSuggestions = [
+  '여기서 경복궁까지 어떻게 가?',
   '서울역에서 경복궁까지 다리를 다쳤는데 어떻게 가?',
   '단국대학교에서 서울역 가려면 짐이 많은데 어떻게 가?',
   '공항에서 명동까지 환승 적은 경로 알려줘',
@@ -34,6 +36,20 @@ export const initialTransportMessages: TransportChatMessage[] = [
     text: '이동 상황을 알려주시면 출발지와 목적지 후보를 찾은 뒤 경로를 추천해드릴게요.',
   },
 ];
+
+// "경복궁 가고 싶어"처럼 출발지가 없을 때 쓸 현재 위치. 권한이 없거나 실패하면 null (출발지를 직접 말하면 됨)
+async function getCurrentCoords() {
+  try {
+    const permission = await Location.requestForegroundPermissionsAsync();
+    if (permission.status !== Location.PermissionStatus.GRANTED) return null;
+    const position =
+      (await Location.getLastKnownPositionAsync({ maxAge: 5 * 60_000 })) ??
+      (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }));
+    return { lat: position.coords.latitude, lng: position.coords.longitude };
+  } catch {
+    return null;
+  }
+}
 
 export function useTransportChat() {
   const latestSession = getLatestTransportSession();
@@ -185,7 +201,7 @@ export function useTransportChat() {
     }
   };
 
-  const sendMessage = async (text = message) => {
+  const sendMessage = async (text = message, destination?: PlaceCandidate) => {
     const trimmed = text.trim();
     if (trimmed.length === 0 || isInitialLoading) return;
 
@@ -204,7 +220,7 @@ export function useTransportChat() {
     setIsInitialLoading(true);
 
     try {
-      const response = await createTransportInitialRequest(trimmed);
+      const response = await createTransportInitialRequest(trimmed, await getCurrentCoords(), destination);
       setRequestId(response.requestId);
       setDepartureCandidates(response.departureCandidates);
       setDestinationCandidates(response.destinationCandidates);

@@ -19,6 +19,8 @@ export interface FestivalDetailResponse extends FestivalSummaryApi {
   fee?: string | null;
   eventHomepage?: string | null;
   overview?: string | null;
+  lat?: number | null;
+  lng?: number | null;
 }
 
 export function getFestivalList(months: number) {

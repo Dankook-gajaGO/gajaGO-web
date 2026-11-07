@@ -6,7 +6,13 @@ export type RootStackParamList = {
   Login: undefined;
   Signup: undefined;
   Home: undefined;
-  Transport: { country?: CountryKey } | undefined;
+  Transport:
+    | {
+        country?: CountryKey;
+        initialMessage?: string;
+        destination?: { name: string; address: string; lat: number; lng: number };
+      }
+    | undefined;
   Food: { country?: CountryKey } | undefined;
   Facilities: { country?: CountryKey } | undefined;
   Emergency: { country?: CountryKey } | undefined;

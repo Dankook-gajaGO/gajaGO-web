@@ -47,10 +47,13 @@ function buildTransportScheduleTitle(departure: PlaceCandidate, destination: Pla
   return `${departure.name} → ${destination.name}`;
 }
 
-export default function TransportScreen({ navigation }: Props) {
+export default function TransportScreen({ navigation, route }: Props) {
   const chat = useTransportChat();
   const scrollRef = useRef<ScrollView | null>(null);
   const lastSavedRouteRef = useRef('');
+  const initialMessage = route.params?.initialMessage;
+  const initialDestination = route.params?.destination;
+  const sentInitialRef = useRef(false);
   const [recentRoutes, setRecentRoutes] = useState<TransportRouteHistoryItem[]>([]);
   const [isSavingSchedule, setIsSavingSchedule] = useState(false);
   const [routeStatusMessage, setRouteStatusMessage] = useState('');
@@ -74,6 +77,13 @@ export default function TransportScreen({ navigation }: Props) {
   useEffect(() => {
     void loadRecentRoutes();
   }, [loadRecentRoutes]);
+
+  // 행사 상세의 "길찾기"로 들어오면 그 질문을 바로 보냄 (로그인 확인이 끝난 뒤 한 번만)
+  useEffect(() => {
+    if (!initialMessage || sentInitialRef.current || !chat.isAuthReady) return;
+    sentInitialRef.current = true;
+    void chat.sendMessage(initialMessage, initialDestination);
+  }, [initialMessage, initialDestination, chat.isAuthReady, chat.sendMessage]);
 
   useEffect(() => {
     scrollToBottom();
