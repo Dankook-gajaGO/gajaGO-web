@@ -135,3 +135,8 @@ export function addExpense(body: { spentOn: string; title: string; amount: numbe
 export function deleteExpense(id: number) {
   return apiRequest<null>(`/api/expenses/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
+
+// 가계부 환산용 환율 (누구나). 서버가 12시간 캐시. krwPer: 1 외화 = N원
+export function getExchangeRates() {
+  return apiRequest<{ krwPer: Record<string, number>; updatedAt: string }>('/api/exchange-rates', { auth: false });
+}
