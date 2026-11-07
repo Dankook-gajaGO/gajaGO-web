@@ -3,6 +3,7 @@ import type { ComponentProps } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { PlaceCandidate, TransportRoute } from '../../api';
 import { COLORS, radius, shadow } from '../../theme';
+import { openKakaoRoute, openNaverRoute } from '../../utils/maps';
 
 type FeatherName = ComponentProps<typeof Feather>['name'];
 
@@ -12,6 +13,7 @@ interface RouteDetailProps {
   destination: PlaceCandidate | null;
   isSavingSchedule?: boolean;
   onSaveToSchedule?: () => void;
+  onShowTaxiCard?: () => void;
 }
 
 interface ParsedStep {
@@ -60,6 +62,7 @@ export function RouteDetail({
   destination,
   isSavingSchedule = false,
   onSaveToSchedule,
+  onShowTaxiCard,
 }: RouteDetailProps) {
   if (!route) return null;
 
@@ -88,8 +91,24 @@ export function RouteDetail({
           disabled={!departure || !destination}
         >
           <Feather name="external-link" size={15} color={COLORS.ink} />
-          <Text style={styles.actionText}>지도 열기</Text>
+          <Text style={styles.actionText}>구글</Text>
         </Pressable>
+        {departure && destination ? (
+          <>
+            <Pressable style={styles.actionButton} onPress={() => void openNaverRoute(departure, destination)}>
+              <Text style={styles.actionText}>네이버</Text>
+            </Pressable>
+            <Pressable style={styles.actionButton} onPress={() => void openKakaoRoute(departure, destination)}>
+              <Text style={styles.actionText}>카카오</Text>
+            </Pressable>
+          </>
+        ) : null}
+        {onShowTaxiCard ? (
+          <Pressable style={styles.actionButton} onPress={onShowTaxiCard}>
+            <Feather name="credit-card" size={15} color={COLORS.ink} />
+            <Text style={styles.actionText}>택시 카드</Text>
+          </Pressable>
+        ) : null}
         {onSaveToSchedule ? (
           <Pressable
             style={[styles.primaryActionButton, isSavingSchedule ? styles.disabledButton : null]}

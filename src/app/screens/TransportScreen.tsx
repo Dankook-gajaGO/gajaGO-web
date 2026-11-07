@@ -41,6 +41,7 @@ import { COLORS } from '../theme';
 import { getFallbackTodayKey } from '../utils/date';
 import { useFocusEffect } from '@react-navigation/native';
 import { ensureLoggedIn } from '../utils/requireLogin';
+import { buildTaxiCard } from '../utils/cards';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Transport'>;
 
@@ -236,6 +237,11 @@ export default function TransportScreen({ navigation, route }: Props) {
           destination={chat.selectedDestination}
           isSavingSchedule={isSavingSchedule}
           onSaveToSchedule={saveSelectedRouteToSchedule}
+          onShowTaxiCard={
+            chat.selectedDestination
+              ? () => navigation.navigate('ShowCard', buildTaxiCard(chat.selectedDestination!.name, chat.selectedDestination!.address))
+              : undefined
+          }
         />
 
         {routeStatusMessage ? <ToastMessage message={routeStatusMessage} /> : null}

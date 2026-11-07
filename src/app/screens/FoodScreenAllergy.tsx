@@ -12,6 +12,7 @@ import { useSafeFoods } from '../hooks/useSafeFoods';
 import type { RootStackParamList } from '../routes';
 import { COLORS } from '../theme';
 import { ensureLoggedIn, isLoggedIn } from '../utils/requireLogin';
+import { buildAllergyCard } from '../utils/cards';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Food'>;
 
@@ -93,6 +94,15 @@ export default function FoodScreenAllergy({ navigation }: Props) {
           >
             <Text style={styles.saveButtonText}>내 알러지로 저장</Text>
           </Pressable>
+          {selectedAllergies.length > 0 ? (
+            <Pressable
+              style={[styles.saveButton, styles.cardButton]}
+              onPress={() => navigation.navigate('ShowCard', buildAllergyCard(selectedAllergies))}
+              accessibilityRole="button"
+            >
+              <Text style={styles.saveButtonText}>알러지 카드</Text>
+            </Pressable>
+          ) : null}
           {allergyMessage ? <Text style={styles.saveMessage}>{allergyMessage}</Text> : null}
         </View>
         <View style={styles.resultSummary}>
@@ -106,6 +116,7 @@ export default function FoodScreenAllergy({ navigation }: Props) {
           </View>
         ) : null}
         {statusMessage ? <Text style={styles.errorText}>{statusMessage}</Text> : null}
+        <Text style={styles.disclaimer}>대표 레시피 기준 참고 정보예요. 식당마다 재료가 다를 수 있으니 알러지 카드로 꼭 확인하세요.</Text>
       </View>
 
       <FlatList
@@ -154,6 +165,9 @@ const styles = StyleSheet.create({
     borderColor: COLORS.teal,
     paddingHorizontal: 14,
     justifyContent: 'center',
+  },
+  cardButton: {
+    marginLeft: 8,
   },
   saveButtonDisabled: {
     opacity: 0.5,
@@ -204,6 +218,12 @@ const styles = StyleSheet.create({
     color: COLORS.red,
     fontSize: 12,
     lineHeight: 18,
+    marginTop: 8,
+  },
+  disclaimer: {
+    color: COLORS.muted,
+    fontSize: 11,
+    lineHeight: 16,
     marginTop: 8,
   },
   list: {
