@@ -8,13 +8,17 @@ import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   addExpense,
+  addTrip,
+  deleteTrip,
   deleteExpense,
   getApiErrorMessage,
   getExchangeRates,
   getExpenses,
+  getTrips,
   getServerTodayKey,
   updateExpense,
   type ExpenseItem,
+  type TripItem,
 } from '../api';
 import { AppHeader } from '../components/common/AppHeader';
 import { AmountKeypad } from '../components/expense/AmountKeypad';
@@ -106,13 +110,23 @@ export default function ExpenseScreen({ navigation }: Props) {
   const [shareTo, setShareTo] = useState(getFallbackTodayKey());
   const [isSharing, setIsSharing] = useState(false);
   const receiptRef = useRef<View>(null);
+  // 여행: 선택하면 그 기간의 지출만 보여줌 (null = 전체)
+  const [trips, setTrips] = useState<TripItem[]>([]);
+  const [tripId, setTripId] = useState<number | null>(null);
+  const [tripSheet, setTripSheet] = useState(false);
+  const [tripName, setTripName] = useState('');
+  const [tripStart, setTripStart] = useState(getFallbackTodayKey());
+  const [tripEnd, setTripEnd] = useState(getFallbackTodayKey());
+  const [tripMessage, setTripMessage] = useState('');
 
   const load = useCallback(async () => {
     const member = await isLoggedIn();
     setIsMember(member);
     if (!member) return;
     try {
-      setItems(await getExpenses());
+      const [expenses, tripList] = await Promise.all([getExpenses(), getTrips()]);
+      setItems(expenses);
+      setTrips(tripList);
       setMessage('');
     } catch (error) {
       setMessage(getApiErrorMessage(error));
@@ -147,7 +161,7 @@ export default function ExpenseScreen({ navigation }: Props) {
     if (!(await ensureLoggedIn(navigation))) return;
     setDraftAmount(0);
     setDraftTitle('');
-    setDraftDate(today);
+    setDraftDate(trip && (today < trip.startDate || today > trip.endDate) ? trip.startDate : today);
     setSheetMessage('');
     setSheet('add');
   };
@@ -161,6 +175,41 @@ export default function ExpenseScreen({ navigation }: Props) {
     setDraftDate(item.spentOn);
     setSheetMessage('');
     setSheet('edit');
+  };
+
+  const openTripSheet = async () => {
+    if (!(await ensureLoggedIn(navigation))) return;
+    setTripName('');
+    setTripStart(today);
+    setTripEnd(shiftDate(today, 2));
+    setTripMessage('');
+    setTripSheet(true);
+  };
+
+  const createTrip = async () => {
+    if (!tripName.trim()) {
+      setTripMessage('여행 이름을 입력해주세요.');
+      return;
+    }
+    try {
+      const created = await addTrip({ name: tripName.trim(), startDate: tripStart, endDate: tripEnd });
+      setTrips((list) => [created, ...list].sort((a, b) => (a.startDate < b.startDate ? 1 : -1)));
+      setTripId(created.id);
+      setTripSheet(false);
+    } catch (error) {
+      setTripMessage(getApiErrorMessage(error));
+    }
+  };
+
+  // 여행만 지움 (그 기간 지출은 그대로)
+  const removeTrip = async (id: number) => {
+    try {
+      await deleteTrip(id);
+      setTrips((list) => list.filter((t) => t.id !== id));
+      setTripId(null);
+    } catch (error) {
+      setMessage(getApiErrorMessage(error));
+    }
   };
 
   const openSplit = () => {
@@ -207,13 +256,13 @@ export default function ExpenseScreen({ navigation }: Props) {
   // 공유하기 열기: 기본 기간 = 첫 기록 ~ 마지막 기록
   const openShare = async () => {
     if (!(await ensureLoggedIn(navigation))) return;
-    if (items.length === 0) {
+    if (visibleItems.length === 0) {
       setMessage('공유할 기록이 없어요');
       return;
     }
-    const dates = items.map((i) => i.spentOn).sort();
-    setShareFrom(dates[0]);
-    setShareTo(dates[dates.length - 1]);
+    const dates = visibleItems.map((i) => i.spentOn).sort();
+    setShareFrom(trip ? trip.startDate : dates[0] ?? today);
+    setShareTo(trip ? trip.endDate : dates[dates.length - 1] ?? today);
     setShareOpen(true);
   };
 
@@ -272,9 +321,11 @@ export default function ExpenseScreen({ navigation }: Props) {
     setMessage('파일로 저장했어요');
   };
 
-  const total = items.reduce((sum, item) => sum + item.amount, 0);
-  const todayTotal = items.filter((i) => i.spentOn === today).reduce((sum, i) => sum + i.amount, 0);
-  const dayCount = new Set(items.map((i) => i.spentOn)).size;
+  const trip = trips.find((t) => t.id === tripId) ?? null;
+  const visibleItems = trip ? items.filter((i) => i.spentOn >= trip.startDate && i.spentOn <= trip.endDate) : items;
+  const total = visibleItems.reduce((sum, item) => sum + item.amount, 0);
+  const todayTotal = visibleItems.filter((i) => i.spentOn === today).reduce((sum, i) => sum + i.amount, 0);
+  const dayCount = new Set(visibleItems.map((i) => i.spentOn)).size;
   const rateValue = currency === 'KRW' ? 0 : rates[currency] ?? 0;
   const toForeign = (n: number) =>
     rateValue > 0 ? `≈ ${(n / rateValue).toLocaleString('en-US', { maximumFractionDigits: 2 })} ${currency}` : '';
@@ -285,26 +336,47 @@ export default function ExpenseScreen({ navigation }: Props) {
 
   const byCategory = useMemo(
     () =>
-      CATEGORIES.map((c) => ({ ...c, sum: items.filter((i) => i.category === c.name).reduce((s, i) => s + i.amount, 0) }))
+      CATEGORIES.map((c) => ({ ...c, sum: visibleItems.filter((i) => i.category === c.name).reduce((s, i) => s + i.amount, 0) }))
         .filter((c) => c.sum > 0)
         .sort((a, b) => b.sum - a.sum),
-    [items]
+    [visibleItems]
   );
 
   const byDate = useMemo(() => {
     const groups = new Map<string, ExpenseItem[]>();
-    items.forEach((item) => groups.set(item.spentOn, [...(groups.get(item.spentOn) ?? []), item]));
+    visibleItems.forEach((item) => groups.set(item.spentOn, [...(groups.get(item.spentOn) ?? []), item]));
     return [...groups.entries()];
-  }, [items]);
+  }, [visibleItems]);
 
   return (
     <View style={styles.screen}>
       <AppHeader title="여행 가계부" onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.content}>
+        {isMember ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tripBar} contentContainerStyle={styles.tripBarInner}>
+            {[{ id: null as number | null, name: '전체' }, ...trips].map((t) => (
+              <Pressable
+                key={t.id ?? 'all'}
+                style={[styles.tripChip, t.id === tripId ? styles.tripChipOn : null]}
+                onPress={() => setTripId(t.id)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: t.id === tripId }}
+              >
+                <Text style={[styles.tripChipText, t.id === tripId ? styles.tripChipTextOn : null]}>{t.name}</Text>
+              </Pressable>
+            ))}
+            <Pressable style={styles.tripAdd} onPress={openTripSheet} accessibilityRole="button">
+              <Feather name="plus" size={14} color={COLORS.teal} />
+              <Text style={styles.tripAddText}>새 여행</Text>
+            </Pressable>
+          </ScrollView>
+        ) : null}
         {/* 요약: 큰 총액 하나 + 환산 */}
         <View style={styles.summary}>
           <View style={styles.summaryTop}>
-            <Text style={styles.summaryLabel}>이번 여행에 쓴 돈</Text>
+            <Text style={styles.summaryLabel}>
+              {trip ? `${trip.name} · ${dayLabel(trip.startDate, today)} ~ ${dayLabel(trip.endDate, today)}` : '전체 지출'}
+            </Text>
             <Pressable style={styles.currencyPill} onPress={() => setShowCurrencies((v) => !v)} accessibilityRole="button">
               <Text style={styles.currencyPillText}>{currency}</Text>
               <Feather name={showCurrencies ? 'chevron-up' : 'chevron-down'} size={14} color={COLORS.text} />
@@ -333,6 +405,11 @@ export default function ExpenseScreen({ navigation }: Props) {
             </View>
           ) : null}
 
+          {trip ? (
+            <Pressable onPress={() => removeTrip(trip.id)} style={styles.tripDelete} accessibilityRole="button">
+              <Text style={styles.tripDeleteText}>이 여행 삭제 (지출 기록은 남아요)</Text>
+            </Pressable>
+          ) : null}
           <View style={styles.stats}>
             <View style={styles.stat}>
               <Text style={styles.statLabel}>오늘</Text>
@@ -346,7 +423,7 @@ export default function ExpenseScreen({ navigation }: Props) {
             <View style={styles.statDivider} />
             <View style={styles.stat}>
               <Text style={styles.statLabel}>기록</Text>
-              <Text style={styles.statValue}>{items.length}건</Text>
+              <Text style={styles.statValue}>{visibleItems.length}건</Text>
             </View>
           </View>
         </View>
@@ -452,7 +529,7 @@ export default function ExpenseScreen({ navigation }: Props) {
                 </View>
               ))
             )}
-            {items.length > 0 ? (
+            {visibleItems.length > 0 ? (
               <Pressable style={styles.shareButton} onPress={openShare} accessibilityRole="button">
                 <Feather name="share-2" size={16} color={COLORS.teal} />
                 <Text style={styles.shareButtonText}>공유하기</Text>
@@ -547,6 +624,47 @@ export default function ExpenseScreen({ navigation }: Props) {
         </View>
       </Modal>
 
+      {/* 새 여행: 이름 + 기간 */}
+      <Modal visible={tripSheet} transparent animationType="slide" onRequestClose={() => setTripSheet(false)}>
+        <Pressable style={styles.backdrop} onPress={() => setTripSheet(false)} accessibilityLabel="닫기" />
+        <View style={styles.sheet}>
+          <View style={styles.handle} />
+          <Text style={styles.sheetTitle}>새 여행</Text>
+          <TextInput
+            style={styles.titleInput}
+            value={tripName}
+            onChangeText={setTripName}
+            placeholder="여행 이름 (예: 서울 여행)"
+            placeholderTextColor={COLORS.muted}
+            maxLength={40}
+          />
+          {(
+            [
+              ['시작', tripStart, (d: string) => {
+                setTripStart(d);
+                if (d > tripEnd) setTripEnd(d);
+              }],
+              ['끝', tripEnd, (d: string) => setTripEnd(d < tripStart ? tripStart : d)],
+            ] as const
+          ).map(([label, value, set]) => (
+            <View key={label} style={styles.rangeRow}>
+              <Text style={styles.rangeLabel}>{label}</Text>
+              <Pressable style={styles.dateArrow} onPress={() => set(shiftDate(value, -1))} accessibilityLabel={`${label} 하루 전`}>
+                <Feather name="chevron-left" size={18} color={COLORS.ink} />
+              </Pressable>
+              <Text style={styles.dateText}>{dayLabel(value, today)}</Text>
+              <Pressable style={styles.dateArrow} onPress={() => set(shiftDate(value, 1))} accessibilityLabel={`${label} 하루 뒤`}>
+                <Feather name="chevron-right" size={18} color={COLORS.ink} />
+              </Pressable>
+            </View>
+          ))}
+          {tripMessage ? <Text style={styles.message}>{tripMessage}</Text> : null}
+          <Pressable style={[styles.cta, styles.sheetCta]} onPress={createTrip} accessibilityRole="button">
+            <Text style={styles.ctaText}>여행 만들기</Text>
+          </Pressable>
+        </View>
+      </Modal>
+
       {/* 공유하기: 기간 선택 + 영수증 미리보기 */}
       <Modal visible={shareOpen} transparent animationType="slide" onRequestClose={() => setShareOpen(false)}>
         <View style={styles.shareBackdrop}>
@@ -581,6 +699,7 @@ export default function ExpenseScreen({ navigation }: Props) {
                   currency={currency}
                   toForeign={toForeign}
                   createdOn={today}
+                  tripName={trip?.name}
                 />
               </View>
             </ScrollView>
@@ -687,6 +806,16 @@ const styles = StyleSheet.create({
   chipTextOn: { color: COLORS.white },
   titleInput: { minHeight: 46, borderRadius: radius.md, backgroundColor: COLORS.card, paddingHorizontal: 14, marginTop: 10, marginBottom: 6, color: COLORS.ink, fontSize: 15 },
   sheetCta: { marginTop: 10 },
+  tripBar: { backgroundColor: COLORS.white, flexGrow: 0 },
+  tripBarInner: { paddingHorizontal: 22, paddingTop: 14, alignItems: 'center' },
+  tripChip: { borderRadius: 16, backgroundColor: COLORS.card, paddingHorizontal: 14, paddingVertical: 8, marginRight: 8 },
+  tripChipOn: { backgroundColor: COLORS.ink },
+  tripChipText: { color: COLORS.text, fontSize: 14, fontWeight: '700' },
+  tripChipTextOn: { color: COLORS.white },
+  tripAdd: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, borderWidth: 1, borderColor: COLORS.teal, paddingHorizontal: 12, paddingVertical: 7 },
+  tripAddText: { color: COLORS.teal, fontSize: 13, fontWeight: '800', marginLeft: 4 },
+  tripDelete: { alignSelf: 'flex-start', marginTop: 8 },
+  tripDeleteText: { color: COLORS.muted, fontSize: 12, textDecorationLine: 'underline' },
   shareButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', minHeight: 46, borderRadius: radius.md, borderWidth: 1, borderColor: COLORS.teal, marginTop: 12 },
   shareButtonText: { color: COLORS.teal, fontSize: 15, fontWeight: '800', marginLeft: 6 },
   shareBackdrop: { flex: 1, backgroundColor: '#00000066', justifyContent: 'flex-end' },

@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import Feather from '@expo/vector-icons/Feather';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { getExpenses } from '../../api';
+import { getExpenses, getTrips } from '../../api';
 import { COLORS, radius } from '../../theme';
 import { isLoggedIn } from '../../utils/requireLogin';
 
@@ -10,6 +10,7 @@ import { isLoggedIn } from '../../utils/requireLogin';
 export function ExpenseDayCard({ date, onPress }: { date: string; onPress: () => void }) {
   const [sum, setSum] = useState(0);
   const [count, setCount] = useState(0);
+  const [tripLabel, setTripLabel] = useState('');
 
   useFocusEffect(
     useCallback(() => {
@@ -17,10 +18,15 @@ export function ExpenseDayCard({ date, onPress }: { date: string; onPress: () =>
       void (async () => {
         if (!(await isLoggedIn())) return;
         try {
-          const day = (await getExpenses()).filter((item) => item.spentOn === date);
+          const [expenses, trips] = await Promise.all([getExpenses(), getTrips()]);
+          const day = expenses.filter((item) => item.spentOn === date);
+          const trip = trips.find((t) => t.startDate <= date && date <= t.endDate);
           if (!active) return;
           setSum(day.reduce((total, item) => total + item.amount, 0));
           setCount(day.length);
+          // N일차: 날짜 문자열 차이 (UTC 기준으로 계산해 시간대 영향 없음)
+          const nth = trip ? Math.round((Date.parse(date) - Date.parse(trip.startDate)) / 86400000) + 1 : 0;
+          setTripLabel(trip ? `${trip.name} · ${nth}일차` : '');
         } catch {
           if (active) setSum(0);
         }
@@ -31,7 +37,7 @@ export function ExpenseDayCard({ date, onPress }: { date: string; onPress: () =>
     }, [date])
   );
 
-  if (sum <= 0) return null;
+  if (sum <= 0 && !tripLabel) return null;
 
   return (
     <Pressable style={styles.card} onPress={onPress} accessibilityRole="button" accessibilityLabel={`이날 가계부 ${sum}원, 가계부 열기`}>
@@ -39,8 +45,8 @@ export function ExpenseDayCard({ date, onPress }: { date: string; onPress: () =>
         <Feather name="credit-card" size={16} color={COLORS.teal} />
       </View>
       <View style={styles.body}>
-        <Text style={styles.label}>이날 가계부 · {count}건</Text>
-        <Text style={styles.amount}>{sum.toLocaleString('ko-KR')}원</Text>
+        <Text style={styles.label}>{tripLabel ? `${tripLabel} · ` : ''}이날 가계부{count > 0 ? ` · ${count}건` : ''}</Text>
+        <Text style={styles.amount}>{sum > 0 ? `${sum.toLocaleString('ko-KR')}원` : '아직 기록이 없어요'}</Text>
       </View>
       <Feather name="chevron-right" size={18} color={COLORS.muted} />
     </Pressable>

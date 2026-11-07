@@ -32,9 +32,10 @@ type Props = {
   currency: string;
   toForeign: (n: number) => string; // '' 이면 환산 표시 안 함
   createdOn: string;
+  tripName?: string;
 };
 
-export function ExpenseReceipt({ items, from, to, people, perPerson, currency, toForeign, createdOn }: Props) {
+export function ExpenseReceipt({ items, from, to, people, perPerson, currency, toForeign, createdOn, tripName }: Props) {
   const total = items.reduce((sum, item) => sum + item.amount, 0);
   const byCategory = Object.entries(
     items.reduce<Record<string, number>>((acc, item) => ({ ...acc, [item.category]: (acc[item.category] ?? 0) + item.amount }), {})
@@ -49,7 +50,10 @@ export function ExpenseReceipt({ items, from, to, people, perPerson, currency, t
           <Text style={styles.headTitle}>가자GO 여행 가계부</Text>
           <Feather name="file-text" size={18} color="#FFFFFF" />
         </View>
-        <Text style={styles.headSub}>{from === to ? md(from) : `${md(from)} ~ ${md(to)}`}</Text>
+        <Text style={styles.headSub}>
+          {tripName ? `${tripName} · ` : ''}
+          {from === to ? md(from) : `${md(from)} ~ ${md(to)}`}
+        </Text>
       </View>
 
       <View style={styles.block}>
