@@ -27,6 +27,7 @@ import type { RootStackParamList } from '../routes';
 import { COLORS, radius } from '../theme';
 import { getFallbackTodayKey } from '../utils/date';
 import { ensureLoggedIn, isLoggedIn } from '../utils/requireLogin';
+import { cancelTripReminder, scheduleTripReminder } from '../utils/notifications';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Expense'>;
 type FeatherName = ComponentProps<typeof Feather>['name'];
@@ -193,6 +194,7 @@ export default function ExpenseScreen({ navigation }: Props) {
     }
     try {
       const created = await addTrip({ name: tripName.trim(), startDate: tripStart, endDate: tripEnd });
+      void scheduleTripReminder(created);
       setTrips((list) => [created, ...list].sort((a, b) => (a.startDate < b.startDate ? 1 : -1)));
       setTripId(created.id);
       setTripSheet(false);
@@ -205,6 +207,7 @@ export default function ExpenseScreen({ navigation }: Props) {
   const removeTrip = async (id: number) => {
     try {
       await deleteTrip(id);
+      void cancelTripReminder(id);
       setTrips((list) => list.filter((t) => t.id !== id));
       setTripId(null);
     } catch (error) {
