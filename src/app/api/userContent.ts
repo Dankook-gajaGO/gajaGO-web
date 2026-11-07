@@ -144,3 +144,23 @@ export function getExchangeRates() {
 export function updateExpense(id: number, body: { spentOn: string; title: string; amount: number; category: string }) {
   return apiRequest<ExpenseItem>(`/api/expenses/${encodeURIComponent(id)}`, { method: 'PUT', body });
 }
+
+// 여행 정보 (회원 전용). 이 기간의 지출이 이 여행의 가계부
+export interface TripItem {
+  id: number;
+  name: string;
+  startDate: string;
+  endDate: string;
+}
+
+export function getTrips() {
+  return apiRequest<TripItem[]>('/api/trips');
+}
+
+export function addTrip(body: { name: string; startDate: string; endDate: string }) {
+  return apiRequest<TripItem>('/api/trips', { method: 'POST', body });
+}
+
+export function deleteTrip(id: number) {
+  return apiRequest<null>(`/api/trips/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
