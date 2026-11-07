@@ -236,6 +236,12 @@ export default function PaymentScreen({ navigation }: Props) {
   return (
     <View style={styles.screen}>
       <AppHeader title="결제 정보" onBack={() => navigation.goBack()} />
+      {/* 비회원도 N빵 계산 가능, 지출 저장은 회원 */}
+      <Pressable style={[styles.expenseEntry, shadow.card]} onPress={() => navigation.navigate('Expense')} accessibilityRole="button">
+        <Feather name="credit-card" size={18} color={COLORS.white} />
+        <Text style={styles.expenseEntryText}>가계부 · N빵 계산기</Text>
+        <Feather name="chevron-right" size={18} color={COLORS.white} />
+      </Pressable>
       <View style={styles.tabs}>
         {tabs.map((item) => (
           <Pressable
@@ -310,6 +316,17 @@ export default function PaymentScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
+  expenseEntry: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.teal,
+    borderRadius: radius.lg,
+    marginHorizontal: 20,
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  expenseEntryText: { flex: 1, color: COLORS.white, fontSize: 15, fontWeight: '900', marginLeft: 10 },
   screen: {
     flex: 1,
     backgroundColor: COLORS.screen,
