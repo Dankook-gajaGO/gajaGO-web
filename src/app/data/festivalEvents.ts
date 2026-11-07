@@ -125,10 +125,37 @@ export function festivalDetailToEvent(detail: FestivalDetailResponse): FestivalE
   return festivalSummaryToEvent(detail);
 }
 
-export function sortFestivalEvents(events: FestivalEventItem[]) {
+const DAY_MS = 86400000;
+const RECENT_START_DAYS = 30;
+
+function localTodayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// 추천 순서: 곧 시작하거나 최근(30일 이내) 시작한 행사를 오늘과 가까운 순으로 먼저,
+// 오래전에 시작한 상설 행사(예: 2022년 시작)는 맨 뒤로
+export function festivalRank(startDate: string, today: string) {
+  const diff = Math.round((Date.parse(startDate) - Date.parse(today)) / DAY_MS);
+  if (diff >= 0) return diff;
+  return -diff <= RECENT_START_DAYS ? -diff : 1000 - diff;
+}
+
+export function sortFestivalEvents(events: FestivalEventItem[], today = localTodayKey()) {
   return [...events].sort((a, b) => {
-    const startCompare = a.startDate.localeCompare(b.startDate);
-    if (startCompare !== 0) return startCompare;
+    const rankCompare = festivalRank(a.startDate, today) - festivalRank(b.startDate, today);
+    if (rankCompare !== 0) return rankCompare;
     return a.title.localeCompare(b.title);
   });
+}
+
+// self-check: 내일 시작 < 어제 시작 < 열흘 뒤 시작 < 2022년 시작
+if (
+  !(
+    festivalRank('2026-11-09', '2026-11-08') < festivalRank('2026-11-06', '2026-11-08') &&
+    festivalRank('2026-11-06', '2026-11-08') < festivalRank('2026-11-18', '2026-11-08') &&
+    festivalRank('2026-11-18', '2026-11-08') < festivalRank('2022-11-01', '2026-11-08')
+  )
+) {
+  throw new Error('festivalRank self-check failed');
 }
