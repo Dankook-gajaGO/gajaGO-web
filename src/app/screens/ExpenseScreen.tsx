@@ -10,7 +10,6 @@ import {
   getApiErrorMessage,
   getExchangeRates,
   getExpenses,
-  getSavedFestivals,
   getServerTodayKey,
   updateExpense,
   type ExpenseItem,
@@ -196,11 +195,10 @@ export default function ExpenseScreen({ navigation }: Props) {
     }
   };
 
-  // 백업: 요약·N빵·분류별·내역·저장한 행사를 텍스트로. 폰은 공유 메뉴, PC(웹)는 파일 다운로드
+  // 내보내기: 요약·N빵·분류별·내역을 텍스트로. 폰은 공유 메뉴, PC(웹)는 파일 다운로드
   const exportData = async () => {
     if (!(await ensureLoggedIn(navigation))) return;
     try {
-      const saved = await getSavedFestivals().catch(() => ({ savedFestivals: [] as { title: string }[] }));
       const fx = (n: number) => (rateValue > 0 ? ` (${toForeign(n)})` : '');
       const text = [
         `가자GO 여행 가계부 (${today} 내보냄)`,
@@ -217,9 +215,6 @@ export default function ExpenseScreen({ navigation }: Props) {
         '',
         '[내역] 날짜,분류,세부 내용,금액(원)',
         ...items.map((i) => `${i.spentOn},${i.category},"${detailOf(i).replace(/"/g, '""')}",${i.amount}`),
-        '',
-        '[저장한 행사]',
-        ...saved.savedFestivals.map((f) => `- ${f.title}`),
       ].join('\n');
 
       if (Platform.OS === 'web') {
