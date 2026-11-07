@@ -107,9 +107,9 @@ export default function EventDetailScreen({ navigation, route }: Props) {
     if (homepageUrl) void Linking.openURL(homepageUrl);
   };
 
-  // 출발지는 말하지 않음 -> 챗봇이 현재 위치에서 출발. 행사 좌표가 있으면 장소 검색 없이 그 좌표로 안내
-  const openDirections = async () => {
-    if (!event || !(await ensureLoggedIn(navigation))) return;
+  // 출발지는 말하지 않음 -> 챗봇이 현재 위치에서 출발. 행사 좌표가 있으면 장소 검색 없이 그 좌표로 안내 (비회원도 사용)
+  const openDirections = () => {
+    if (!event) return;
     const lat = detail?.lat;
     const lng = detail?.lng;
     navigation.navigate('Transport', {

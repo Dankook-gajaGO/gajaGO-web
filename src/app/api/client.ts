@@ -106,7 +106,8 @@ export class ApiError extends Error {
 
 type ApiRequestOptions = Omit<RequestInit, 'body'> & {
   body?: unknown;
-  auth?: boolean;
+  // true(기본): 로그인 필수, false: 토큰 안 보냄, 'optional': 로그인했으면 토큰을 보내고 아니면 비회원으로
+  auth?: boolean | 'optional';
 };
 
 function buildUrl(path: string) {
@@ -150,7 +151,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
 
   const token = options.auth === false ? null : authToken ?? (await hydrateAuthToken());
 
-  if (options.auth !== false && !token) {
+  if (options.auth !== false && options.auth !== 'optional' && !token) {
     throw new ApiError(401, '로그인 인증이 필요합니다. 다시 로그인해주세요.', null);
   }
 

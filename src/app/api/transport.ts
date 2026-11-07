@@ -165,6 +165,7 @@ export async function createTransportInitialRequest(
 ) {
   const response = await apiRequest<unknown>('/api/transport/InitialRequest', {
     method: 'POST',
+    auth: 'optional', // 비회원도 길찾기 가능, 회원이면 회원 요청으로 저장
     body: {
       message,
       ...(coords ?? {}),
@@ -180,6 +181,7 @@ export async function createTransportInitialRequest(
 export async function getTransportRoutes(payload: TransportRouteRequest) {
   const response = await apiRequest<unknown>('/api/transport/routes', {
     method: 'POST',
+    auth: 'optional',
     body: payload,
   });
 

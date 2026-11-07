@@ -17,7 +17,6 @@ import {
 } from '../api';
 import { AppHeader } from '../components/common/AppHeader';
 import { ToastMessage } from '../components/common/ToastMessage';
-import { AuthNotice } from '../components/transport/AuthNotice';
 import { CandidateSection } from '../components/transport/CandidateSection';
 import { ChatMessageList } from '../components/transport/ChatMessageList';
 import { RecentRoutePanel } from '../components/transport/RecentRoutePanel';
@@ -78,23 +77,17 @@ export default function TransportScreen({ navigation, route }: Props) {
 
   useFocusEffect(
     useCallback(() => {
-      void chat.refreshAuth();
       void loadRecentRoutes();
-    }, [chat.refreshAuth, loadRecentRoutes])
+    }, [loadRecentRoutes])
   );
 
-  // 길찾기 질문은 회원 기록(user_request)으로 남으므로 회원만. 비회원이면 로그인 화면
-  const send = async (text?: string, destination?: PlaceCandidate) => {
-    if (!(await ensureLoggedIn(navigation))) return;
-    await chat.sendMessage(text, destination);
-  };
 
-  // 행사 상세의 "길찾기"로 들어오면 그 질문을 바로 보냄 (로그인 확인이 끝난 뒤 한 번만)
+  // 행사 상세의 "길찾기"로 들어오면 그 질문을 바로 한 번 보냄
   useEffect(() => {
-    if (!initialMessage || sentInitialRef.current || !chat.isAuthReady) return;
+    if (!initialMessage || sentInitialRef.current) return;
     sentInitialRef.current = true;
-    void send(initialMessage, initialDestination);
-  }, [initialMessage, initialDestination, chat.isAuthReady, chat.sendMessage]);
+    void chat.sendMessage(initialMessage, initialDestination);
+  }, [initialMessage, initialDestination, chat.sendMessage]);
 
   useEffect(() => {
     scrollToBottom();
@@ -199,11 +192,8 @@ export default function TransportScreen({ navigation, route }: Props) {
           onSelect={restoreRecentRoute}
           onClear={clearRecentRoutes}
         />
-        <SuggestionList suggestions={transportSuggestions} onSelect={(item) => void send(item)} />
+        <SuggestionList suggestions={transportSuggestions} onSelect={(item) => void chat.sendMessage(item)} />
 
-        {chat.isAuthReady && !chat.isAuthorized ? (
-          <AuthNotice onLogin={() => navigation.navigate('Login', { returnAfterLogin: true })} />
-        ) : null}
 
         <ChatMessageList messages={chat.messages} />
 
@@ -256,7 +246,7 @@ export default function TransportScreen({ navigation, route }: Props) {
         isLoading={chat.isInitialLoading}
         onChangeMessage={chat.setMessage}
         onFocus={scrollToBottomAfterKeyboard}
-        onSend={() => void send()}
+        onSend={() => void chat.sendMessage()}
       />
     </KeyboardAvoidingView>
   );
