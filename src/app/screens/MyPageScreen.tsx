@@ -17,7 +17,7 @@ const rows: Array<{
   label: string;
   caption: string;
   icon: FeatherName;
-  action: 'saved' | 'logout';
+  action: 'saved' | 'expense' | 'logout';
   danger?: boolean;
 }> = [
   {
@@ -25,6 +25,12 @@ const rows: Array<{
     caption: '관심 있는 행사를 확인하고 캘린더에 추가합니다.',
     icon: 'heart',
     action: 'saved',
+  },
+  {
+    label: '여행 가계부',
+    caption: '쓴 돈을 기록하고 내 통화로 환산·N빵 정산·내보내기를 합니다.',
+    icon: 'credit-card',
+    action: 'expense',
   },
   {
     label: '로그아웃',
@@ -37,9 +43,13 @@ const rows: Array<{
 
 export default function MyPageScreen({ navigation }: Props) {
   useLoginPromptOnFocus(navigation);
-  const handleRow = async (action: 'saved' | 'logout') => {
+  const handleRow = async (action: 'saved' | 'expense' | 'logout') => {
     if (action === 'saved') {
       navigation.navigate('SavedEvents');
+      return;
+    }
+    if (action === 'expense') {
+      navigation.navigate('Expense');
       return;
     }
 

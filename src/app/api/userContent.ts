@@ -114,3 +114,24 @@ export function saveMyAllergies(allergies: string[]) {
     body: { allergies },
   });
 }
+
+// 여행 가계부 (회원 전용). 금액은 원화
+export interface ExpenseItem {
+  id: number;
+  spentOn: string;
+  title: string;
+  amount: number;
+  category: string;
+}
+
+export function getExpenses() {
+  return apiRequest<ExpenseItem[]>('/api/expenses');
+}
+
+export function addExpense(body: { spentOn: string; title: string; amount: number; category: string }) {
+  return apiRequest<ExpenseItem>('/api/expenses', { method: 'POST', body });
+}
+
+export function deleteExpense(id: number) {
+  return apiRequest<null>(`/api/expenses/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}

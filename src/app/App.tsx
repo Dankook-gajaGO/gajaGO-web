@@ -18,6 +18,7 @@ import SignupScreen from './screens/SignupScreen';
 import SplashScreen from './screens/SplashScreen';
 import TransportScreen from './screens/TransportScreen';
 import ShowCardScreen from './screens/ShowCardScreen';
+import ExpenseScreen from './screens/ExpenseScreen';
 import type { RootStackParamList } from './routes';
 import { COLORS } from './theme';
 
@@ -52,6 +53,7 @@ export default function App() {
         <Stack.Screen name="CalendarDetail" component={CalendarDetailScreen} />
         <Stack.Screen name="Payment" component={PaymentScreen} />
         <Stack.Screen name="ShowCard" component={ShowCardScreen} />
+        <Stack.Screen name="Expense" component={ExpenseScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
