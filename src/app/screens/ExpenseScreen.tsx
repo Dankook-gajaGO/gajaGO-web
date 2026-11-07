@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useMemo, useState, type ComponentProps } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
 import { Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Sharing from 'expo-sharing';
+import { captureRef } from 'react-native-view-shot';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
@@ -16,6 +18,7 @@ import {
 } from '../api';
 import { AppHeader } from '../components/common/AppHeader';
 import { AmountKeypad } from '../components/expense/AmountKeypad';
+import { ExpenseReceipt } from '../components/expense/ExpenseReceipt';
 import type { RootStackParamList } from '../routes';
 import { COLORS, radius } from '../theme';
 import { getFallbackTodayKey } from '../utils/date';
@@ -97,6 +100,12 @@ export default function ExpenseScreen({ navigation }: Props) {
   const [sheetMessage, setSheetMessage] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [draftDate, setDraftDate] = useState(getFallbackTodayKey());
+  // 공유하기: 기간을 골라 영수증 이미지로
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareFrom, setShareFrom] = useState(getFallbackTodayKey());
+  const [shareTo, setShareTo] = useState(getFallbackTodayKey());
+  const [isSharing, setIsSharing] = useState(false);
+  const receiptRef = useRef<View>(null);
 
   const load = useCallback(async () => {
     const member = await isLoggedIn();
@@ -195,44 +204,72 @@ export default function ExpenseScreen({ navigation }: Props) {
     }
   };
 
-  // 내보내기: 요약·N빵·분류별·내역을 텍스트로. 폰은 공유 메뉴, PC(웹)는 파일 다운로드
-  const exportData = async () => {
+  // 공유하기 열기: 기본 기간 = 첫 기록 ~ 마지막 기록
+  const openShare = async () => {
     if (!(await ensureLoggedIn(navigation))) return;
-    try {
-      const fx = (n: number) => (rateValue > 0 ? ` (${toForeign(n)})` : '');
-      const text = [
-        `가자GO 여행 가계부 (${today} 내보냄)`,
-        '',
-        '[요약]',
-        `총 지출: ${won(total)}${fx(total)}`,
-        `기록 ${items.length}건 · 하루 평균 ${won(dayCount ? total / dayCount : 0)}`,
-        '',
-        '[N빵]',
-        `나눌 금액 ${won(splitBase)} ÷ ${people}명 → 한 사람당 ${won(perPerson)}${fx(perPerson)}`,
-        '',
-        '[어디에 썼을까요]',
-        ...byCategory.map((c) => `${c.name} ${won(c.sum)} (${Math.round((c.sum / total) * 100)}%)`),
-        '',
-        '[내역] 날짜,분류,세부 내용,금액(원)',
-        ...items.map((i) => `${i.spentOn},${i.category},"${detailOf(i).replace(/"/g, '""')}",${i.amount}`),
-      ].join('\n');
+    if (items.length === 0) {
+      setMessage('공유할 기록이 없어요');
+      return;
+    }
+    const dates = items.map((i) => i.spentOn).sort();
+    setShareFrom(dates[0]);
+    setShareTo(dates[dates.length - 1]);
+    setShareOpen(true);
+  };
 
+  // 폰: 영수증을 이미지로 캡처해 공유 메뉴(카톡·라인 등). PC(웹): 텍스트 파일로 저장
+  const shareReceipt = async () => {
+    setIsSharing(true);
+    try {
       if (Platform.OS === 'web') {
-        // PC 브라우저: 텍스트 파일로 저장
-        const doc = (globalThis as unknown as { document: any }).document;
-        const url = URL.createObjectURL(new Blob(['\uFEFF' + text], { type: 'text/plain;charset=utf-8' }));
-        const a = doc.createElement('a');
-        a.href = url;
-        a.download = `gajago-가계부-${today}.txt`;
-        a.click();
-        URL.revokeObjectURL(url);
-        setMessage('파일로 저장했어요');
+        downloadText(shareItems);
       } else {
-        await Share.share({ title: '가자GO 여행 가계부', message: text });
+        const uri = await captureRef(receiptRef, { format: 'png', quality: 1, result: 'tmpfile' });
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: '가계부 공유' });
+        } else {
+          await Share.share({ url: uri, message: '가자GO 여행 가계부' });
+        }
       }
+      setShareOpen(false);
     } catch (error) {
       setMessage(getApiErrorMessage(error));
+    } finally {
+      setIsSharing(false);
     }
+  };
+
+  const downloadText = (list: ExpenseItem[]) => {
+    const sum = list.reduce((acc, i) => acc + i.amount, 0);
+    const each = splitAmount(sum, people);
+    const fx = (n: number) => (rateValue > 0 ? ` (${toForeign(n)})` : '');
+    const cats = CATEGORIES.map((c) => ({ name: c.name, sum: list.filter((i) => i.category === c.name).reduce((a, i) => a + i.amount, 0) }))
+      .filter((c) => c.sum > 0)
+      .sort((a, b) => b.sum - a.sum);
+    const text = [
+      `가자GO 여행 가계부 (${shareFrom} ~ ${shareTo})`,
+      '',
+      '[요약]',
+      `총 지출: ${won(sum)}${fx(sum)}`,
+      `기록 ${list.length}건`,
+      '',
+      '[N빵]',
+      `${won(sum)} ÷ ${people}명 → 한 사람당 ${won(each)}${fx(each)}`,
+      '',
+      '[어디에 썼을까요]',
+      ...cats.map((c) => `${c.name} ${won(c.sum)} (${Math.round((c.sum / sum) * 100)}%)`),
+      '',
+      '[내역] 날짜,분류,세부 내용,금액(원)',
+      ...list.map((i) => `${i.spentOn},${i.category},"${detailOf(i).replace(/"/g, '""')}",${i.amount}`),
+    ].join('\n');
+    const doc = (globalThis as unknown as { document: any }).document;
+    const url = URL.createObjectURL(new Blob(['\uFEFF' + text], { type: 'text/plain;charset=utf-8' }));
+    const a = doc.createElement('a');
+    a.href = url;
+    a.download = `gajago-가계부-${shareFrom}_${shareTo}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setMessage('파일로 저장했어요');
   };
 
   const total = items.reduce((sum, item) => sum + item.amount, 0);
@@ -242,6 +279,8 @@ export default function ExpenseScreen({ navigation }: Props) {
   const toForeign = (n: number) =>
     rateValue > 0 ? `≈ ${(n / rateValue).toLocaleString('en-US', { maximumFractionDigits: 2 })} ${currency}` : '';
   const splitBase = splitInput > 0 ? splitInput : total;
+  const shareItems = items.filter((i) => i.spentOn >= shareFrom && i.spentOn <= shareTo);
+  const shareTotal = shareItems.reduce((sum, i) => sum + i.amount, 0);
   const perPerson = splitAmount(splitBase, people);
 
   const byCategory = useMemo(
@@ -414,9 +453,9 @@ export default function ExpenseScreen({ navigation }: Props) {
               ))
             )}
             {items.length > 0 ? (
-              <Pressable style={styles.exportLink} onPress={exportData} accessibilityRole="button">
-                <Feather name="download" size={14} color={COLORS.muted} />
-                <Text style={styles.exportText}>내 기록 내보내기 (백업)</Text>
+              <Pressable style={styles.shareButton} onPress={openShare} accessibilityRole="button">
+                <Feather name="share-2" size={16} color={COLORS.teal} />
+                <Text style={styles.shareButtonText}>공유하기</Text>
               </Pressable>
             ) : null}
           </View>
@@ -507,6 +546,59 @@ export default function ExpenseScreen({ navigation }: Props) {
           </Pressable>
         </View>
       </Modal>
+
+      {/* 공유하기: 기간 선택 + 영수증 미리보기 */}
+      <Modal visible={shareOpen} transparent animationType="slide" onRequestClose={() => setShareOpen(false)}>
+        <View style={styles.shareBackdrop}>
+          <View style={styles.shareSheet}>
+            <View style={styles.handle} />
+            <Text style={styles.sheetTitle}>공유할 기간</Text>
+            {(
+              [
+                ['시작', shareFrom, (d: string) => setShareFrom(d > shareTo ? shareTo : d)],
+                ['끝', shareTo, (d: string) => setShareTo(d < shareFrom ? shareFrom : d)],
+              ] as const
+            ).map(([label, value, set]) => (
+              <View key={label} style={styles.rangeRow}>
+                <Text style={styles.rangeLabel}>{label}</Text>
+                <Pressable style={styles.dateArrow} onPress={() => set(shiftDate(value, -1))} accessibilityLabel={`${label} 하루 전`}>
+                  <Feather name="chevron-left" size={18} color={COLORS.ink} />
+                </Pressable>
+                <Text style={styles.dateText}>{dayLabel(value, today)}</Text>
+                <Pressable style={styles.dateArrow} onPress={() => set(shiftDate(value, 1))} accessibilityLabel={`${label} 하루 뒤`}>
+                  <Feather name="chevron-right" size={18} color={COLORS.ink} />
+                </Pressable>
+              </View>
+            ))}
+            <ScrollView style={styles.receiptScroll} contentContainerStyle={styles.receiptWrap}>
+              <View ref={receiptRef} collapsable={false}>
+                <ExpenseReceipt
+                  items={shareItems}
+                  from={shareFrom}
+                  to={shareTo}
+                  people={people}
+                  perPerson={splitAmount(shareTotal, people)}
+                  currency={currency}
+                  toForeign={toForeign}
+                  createdOn={today}
+                />
+              </View>
+            </ScrollView>
+            <Pressable
+              style={[styles.cta, shareItems.length === 0 || isSharing ? styles.ctaDisabled : null]}
+              onPress={shareReceipt}
+              disabled={shareItems.length === 0 || isSharing}
+              accessibilityRole="button"
+            >
+              <Feather name={Platform.OS === 'web' ? 'download' : 'share-2'} size={18} color={COLORS.white} />
+              <Text style={styles.ctaText}>{Platform.OS === 'web' ? '파일로 저장' : '이미지로 공유'}</Text>
+            </Pressable>
+            <Pressable style={styles.closeLink} onPress={() => setShareOpen(false)} accessibilityRole="button">
+              <Text style={styles.exportText}>닫기</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -595,6 +687,15 @@ const styles = StyleSheet.create({
   chipTextOn: { color: COLORS.white },
   titleInput: { minHeight: 46, borderRadius: radius.md, backgroundColor: COLORS.card, paddingHorizontal: 14, marginTop: 10, marginBottom: 6, color: COLORS.ink, fontSize: 15 },
   sheetCta: { marginTop: 10 },
+  shareButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', minHeight: 46, borderRadius: radius.md, borderWidth: 1, borderColor: COLORS.teal, marginTop: 12 },
+  shareButtonText: { color: COLORS.teal, fontSize: 15, fontWeight: '800', marginLeft: 6 },
+  shareBackdrop: { flex: 1, backgroundColor: '#00000066', justifyContent: 'flex-end' },
+  shareSheet: { maxHeight: '92%', backgroundColor: COLORS.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 20 },
+  rangeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
+  rangeLabel: { color: COLORS.muted, fontSize: 13, fontWeight: '700', width: 36 },
+  receiptScroll: { marginTop: 14, marginBottom: 12, backgroundColor: COLORS.screen, borderRadius: radius.lg },
+  receiptWrap: { padding: 14 },
+  closeLink: { alignItems: 'center', paddingTop: 12 },
   dateRow: { flexDirection: 'row', alignItems: 'center', marginTop: 14 },
   dateArrow: { width: 34, height: 34, borderRadius: 17, backgroundColor: COLORS.card, alignItems: 'center', justifyContent: 'center' },
   dateText: { color: COLORS.ink, fontSize: 15, fontWeight: '800', marginHorizontal: 12, minWidth: 110, textAlign: 'center' },
