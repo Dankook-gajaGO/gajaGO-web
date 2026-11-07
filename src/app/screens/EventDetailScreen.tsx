@@ -20,7 +20,7 @@ import type { RootStackParamList } from '../routes';
 import { COLORS, radius } from '../theme';
 import { getFallbackTodayKey } from '../utils/date';
 import { ensureLoggedIn } from '../utils/requireLogin';
-import { openGooglePlace, openKakaoPlace, openNaverPlace } from '../utils/maps';
+import { openGooglePlace, openKakaoPlace } from '../utils/maps';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EventDetails'>;
 
@@ -239,7 +239,6 @@ export default function EventDetailScreen({ navigation, route }: Props) {
                     [
                       ['구글 지도', openGooglePlace],
                       ['카카오맵', openKakaoPlace],
-                      ['네이버 지도', openNaverPlace],
                     ] as const
                   ).map(([label, open]) => (
                     <Pressable

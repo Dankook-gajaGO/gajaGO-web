@@ -33,9 +33,9 @@ export function openKakaoRoute(from: Place, to: Place) {
 type NamedPlace = Place & { address?: string };
 const cleanAddress = (address?: string) => (address ?? '').replace(/\s*\([^)]*\)/g, '').trim();
 
-// 구글: "이름 + 주소" 검색 -> 실제 장소가 결과로 뜸 (앱 없으면 웹)
+// 구글: 행사명은 구글에 없는 경우가 많아 주소로 검색 (예: "경기도 안산시 상록구 한양대학로 55"), 주소 없으면 이름
 export function openGooglePlace(place: NamedPlace) {
-  const query = [place.name, cleanAddress(place.address)].filter(Boolean).join(' ') || `${place.lat},${place.lng}`;
+  const query = cleanAddress(place.address) || place.name || `${place.lat},${place.lng}`;
   return Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`);
 }
 
@@ -44,10 +44,3 @@ export function openKakaoPlace(place: NamedPlace) {
   return Linking.openURL(`https://map.kakao.com/link/map/${encodeURIComponent(place.name)},${place.lat},${place.lng}`);
 }
 
-// 네이버: 앱이 있으면 앱(이름 핀), 없으면 웹에서 주소 검색
-export function openNaverPlace(place: NamedPlace) {
-  return openAppOrWeb(
-    `nmap://place?lat=${place.lat}&lng=${place.lng}&name=${encodeURIComponent(place.name)}&appname=com.gajago.app`,
-    `https://map.naver.com/p/search/${encodeURIComponent(cleanAddress(place.address) || place.name)}`
-  );
-}
