@@ -192,10 +192,8 @@ export default function CalendarDetailScreen({ navigation, route }: Props) {
         ) : null}
 
         <ExpenseDayCard date={selectedDate} onPress={() => navigation.navigate('Expense')} />
-        <View style={styles.reminderWrap}>
-          <ReminderPicker value={reminder} onChange={setReminder} />
-        </View>
         <SelectedDatePanel
+          inputFooter={<ReminderPicker value={reminder} onChange={setReminder} />}
           selectedDate={selectedDate}
           memos={selectedMemos}
           draft={draft}
@@ -225,7 +223,6 @@ function Legend({ color, label }: { color: string; label: string }) {
 }
 
 const styles = StyleSheet.create({
-  reminderWrap: { paddingHorizontal: 20 },
   safe: {
     flex: 1,
     backgroundColor: COLORS.screen,
