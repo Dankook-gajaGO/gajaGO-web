@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import Feather from '@expo/vector-icons/Feather';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { Memo } from '../../data/calendar';
@@ -9,6 +10,7 @@ interface SelectedDatePanelProps {
   draft: string;
   onChangeDraft: (value: string) => void;
   onAddMemo: () => void;
+  inputFooter?: ReactNode; // 입력칸 아래 (예: 알림 선택)
 }
 
 export function SelectedDatePanel({
@@ -17,6 +19,7 @@ export function SelectedDatePanel({
   draft,
   onChangeDraft,
   onAddMemo,
+  inputFooter,
 }: SelectedDatePanelProps) {
   return (
     <View style={styles.card}>
@@ -45,6 +48,7 @@ export function SelectedDatePanel({
           <Feather name="plus" size={20} color={COLORS.white} />
         </Pressable>
       </View>
+      {inputFooter}
     </View>
   );
 }

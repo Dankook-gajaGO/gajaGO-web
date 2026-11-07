@@ -199,16 +199,15 @@ export default function ScheduleScreen({ navigation, route }: Props) {
               <Feather name="plus" size={20} color={COLORS.white} />
             </Pressable>
           </View>
+          {/* 알림은 등록할 때만 고름 (기본: 알림 없음) */}
+          <ReminderPicker value={reminder} onChange={setReminder} />
         </View>
 
         {statusMessage ? (
           <ToastMessage message={statusMessage} tone={statusMessage.includes('못') ? 'error' : 'success'} />
         ) : null}
 
-        <Text style={styles.sectionTitle}>오늘 일정</Text>
-        <View style={styles.reminderWrap}>
-          <ReminderPicker value={reminder} onChange={setReminder} />
-        </View>
+        <Text style={styles.sectionTitle}>등록한 일정</Text>
         <DayScheduleSection places={places} onRemovePlace={removePlace} />
       </ScrollView>
       <BottomNavBar active="Schedule" navigation={navigation} />
@@ -217,7 +216,6 @@ export default function ScheduleScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  reminderWrap: { paddingHorizontal: 20 },
   safe: {
     flex: 1,
     backgroundColor: COLORS.screen,
