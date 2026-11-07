@@ -116,19 +116,24 @@ const styles = StyleSheet.create({
   },
   activeViewTab: {
     backgroundColor: COLORS.white,
+    elevation: 1,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
   },
   viewTabText: {
     color: COLORS.muted,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   activeViewTabText: {
-    color: COLORS.teal,
+    color: COLORS.ink,
   },
   filterLabel: {
-    color: COLORS.ink,
-    fontSize: 12,
-    fontWeight: '900',
+    color: COLORS.muted,
+    fontSize: 13,
+    fontWeight: '700',
     marginBottom: 8,
   },
   statusLabel: {
@@ -162,13 +167,13 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   activeFilter: {
-    backgroundColor: COLORS.teal,
-    borderColor: COLORS.teal,
+    backgroundColor: COLORS.ink,
+    borderColor: COLORS.ink,
   },
   filterText: {
     color: COLORS.text,
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   activeFilterText: {
     color: COLORS.white,

@@ -19,7 +19,6 @@ import { BottomNavBar } from '../components/BottomNavBar';
 import { DateSummaryCard } from '../components/schedule/DateSummaryCard';
 import { DayScheduleSection } from '../components/schedule/DayScheduleSection';
 import { ScheduleDatePicker } from '../components/schedule/ScheduleDatePicker';
-import { ScheduleMapPreview } from '../components/schedule/ScheduleMapPreview';
 import {
   createEmptyScheduleDays,
   createScheduleDay,
@@ -176,11 +175,9 @@ export default function ScheduleScreen({ navigation, route }: Props) {
         <View style={styles.spacer} />
         <ScheduleDatePicker days={days} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
         <ExpenseDayCard date={selectedDate} onPress={() => navigation.navigate('Expense')} />
-        <View style={styles.spacer} />
-        <ScheduleMapPreview count={items.length} />
 
         <View style={styles.inputCard}>
-          <Text style={styles.inputTitle}>오늘 일정</Text>
+          <Text style={styles.inputTitle}>일정 추가</Text>
           <View style={styles.inputRow}>
             <TextInput
               value={draft}
@@ -248,7 +245,7 @@ const styles = StyleSheet.create({
   inputTitle: {
     color: COLORS.ink,
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '700',
     marginBottom: 10,
   },
   inputRow: {
@@ -278,7 +275,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: COLORS.ink,
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '700',
     marginTop: 20,
     marginBottom: 12,
   },

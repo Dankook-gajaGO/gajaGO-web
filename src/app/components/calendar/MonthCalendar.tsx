@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     flex: 1,
     color: COLORS.muted,
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '700',
     textAlign: 'center',
   },
   sunday: {

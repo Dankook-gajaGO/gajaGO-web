@@ -128,10 +128,10 @@ export function RouteDetail({
               <View style={[styles.stepDot, { backgroundColor: `${step.color}22` }]}>
                 <Feather name={step.icon} size={14} color={step.color} />
               </View>
-              {stepIndex < steps.length - 1 ? <View style={styles.stepLine} /> : null}
+              {stepIndex < steps.length - 1 ? <View style={[styles.stepLine, { backgroundColor: `${step.color}55` }]} /> : null}
             </View>
             <View style={styles.stepContent}>
-              <Text style={styles.stepLabel}>STEP {stepIndex + 1}</Text>
+              <Text style={styles.stepLabel}>{stepIndex + 1}단계</Text>
               <Text style={styles.stepText}>{step.label}</Text>
             </View>
           </View>
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
   title: {
     color: COLORS.ink,
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   subtitle: {
     color: COLORS.muted,
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
   },
   rankBadge: {
     borderRadius: 999,
-    backgroundColor: '#E5F7F7',
+    backgroundColor: COLORS.tealSoft,
     paddingHorizontal: 10,
     paddingVertical: 5,
     marginLeft: 10,
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
   rankText: {
     color: COLORS.teal,
     fontSize: 11,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   actionRow: {
     flexDirection: 'row',
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   actionText: {
     color: COLORS.ink,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     marginLeft: 6,
   },
   primaryActionButton: {
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
   primaryActionText: {
     color: COLORS.white,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     marginLeft: 6,
   },
   disabledButton: {
@@ -239,7 +239,8 @@ const styles = StyleSheet.create({
   },
   stepLine: {
     flex: 1,
-    width: 2,
+    width: 3,
+    borderRadius: 2,
     backgroundColor: COLORS.line,
     marginVertical: 4,
   },
@@ -249,8 +250,8 @@ const styles = StyleSheet.create({
   },
   stepLabel: {
     color: COLORS.muted,
-    fontSize: 10,
-    fontWeight: '900',
+    fontSize: 11,
+    fontWeight: '600',
     marginBottom: 3,
   },
   stepText: {

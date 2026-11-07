@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
   backText: {
     color: COLORS.text,
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
     marginLeft: 2,
   },
   form: {
@@ -143,6 +143,6 @@ const styles = StyleSheet.create({
   bottomLink: {
     color: COLORS.teal,
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '700',
   },
 });

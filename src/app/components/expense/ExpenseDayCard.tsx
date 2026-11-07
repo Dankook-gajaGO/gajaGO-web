@@ -1,13 +1,13 @@
 import { useCallback, useState } from 'react';
 import Feather from '@expo/vector-icons/Feather';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { getExpenses, getTrips } from '../../api';
 import { COLORS, radius } from '../../theme';
 import { isLoggedIn } from '../../utils/requireLogin';
 
 // 일정·캘린더에서 선택한 날짜의 가계부 합계 (회원, 기록이 있을 때만 표시). 누르면 가계부로
-export function ExpenseDayCard({ date, onPress }: { date: string; onPress: () => void }) {
+export function ExpenseDayCard({ date, onPress, style }: { date: string; onPress: () => void; style?: StyleProp<ViewStyle> }) {
   const [sum, setSum] = useState(0);
   const [count, setCount] = useState(0);
   const [tripLabel, setTripLabel] = useState('');
@@ -40,7 +40,7 @@ export function ExpenseDayCard({ date, onPress }: { date: string; onPress: () =>
   if (sum <= 0 && !tripLabel) return null;
 
   return (
-    <Pressable style={styles.card} onPress={onPress} accessibilityRole="button" accessibilityLabel={`이날 가계부 ${sum}원, 가계부 열기`}>
+    <Pressable style={[styles.card, style]} onPress={onPress} accessibilityRole="button" accessibilityLabel={`이날 가계부 ${sum}원, 가계부 열기`}>
       <View style={styles.icon}>
         <Feather name="credit-card" size={16} color={COLORS.teal} />
       </View>
@@ -61,11 +61,10 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    marginHorizontal: 20,
     marginTop: 12,
   },
   icon: { width: 34, height: 34, borderRadius: 17, backgroundColor: `${COLORS.teal}1F`, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   body: { flex: 1 },
   label: { color: COLORS.muted, fontSize: 12, fontWeight: '700' },
-  amount: { color: COLORS.ink, fontSize: 16, fontWeight: '800', marginTop: 2 },
+  amount: { color: COLORS.ink, fontSize: 16, fontWeight: '700', marginTop: 2 },
 });

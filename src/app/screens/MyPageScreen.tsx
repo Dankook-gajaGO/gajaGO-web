@@ -22,19 +22,19 @@ const rows: Array<{
 }> = [
   {
     label: '저장한 행사',
-    caption: '관심 있는 행사를 확인하고 캘린더에 추가합니다.',
+    caption: '찜한 행사 모아보기',
     icon: 'heart',
     action: 'saved',
   },
   {
     label: '여행 가계부',
-    caption: '쓴 돈을 기록하고 내 통화로 환산·N빵 정산·내보내기를 합니다.',
+    caption: '경비 기록·환율·N빵',
     icon: 'credit-card',
     action: 'expense',
   },
   {
     label: '로그아웃',
-    caption: '로그아웃하고 비회원으로 계속 둘러봅니다.',
+    caption: '비회원으로 계속 둘러보기',
     icon: 'log-out',
     action: 'logout',
     danger: true,
@@ -67,7 +67,7 @@ export default function MyPageScreen({ navigation }: Props) {
           </View>
           <View style={styles.profileText}>
             <Text style={styles.name}>내 계정</Text>
-            <Text style={styles.email}>여행 기록과 저장 항목을 확인합니다</Text>
+            <Text style={styles.email}>저장한 행사와 가계부를 관리해요</Text>
           </View>
         </View>
 
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#E5F7F7',
+    backgroundColor: COLORS.tealSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
   name: {
     color: COLORS.ink,
     fontSize: 19,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   email: {
     color: COLORS.muted,
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: radius.md,
-    backgroundColor: '#E5F7F7',
+    backgroundColor: COLORS.tealSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
   rowLabel: {
     color: COLORS.ink,
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   dangerText: {
     color: COLORS.red,

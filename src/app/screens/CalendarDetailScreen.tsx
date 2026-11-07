@@ -191,7 +191,7 @@ export default function CalendarDetailScreen({ navigation, route }: Props) {
           <ToastMessage message={statusMessage} tone={statusMessage.includes('못') ? 'error' : 'success'} />
         ) : null}
 
-        <ExpenseDayCard date={selectedDate} onPress={() => navigation.navigate('Expense')} />
+        <ExpenseDayCard date={selectedDate} onPress={() => navigation.navigate('Expense')} style={styles.expenseCard} />
         <SelectedDatePanel
           inputFooter={<ReminderPicker value={reminder} onChange={setReminder} />}
           selectedDate={selectedDate}
@@ -231,6 +231,10 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 28,
   },
+  expenseCard: {
+    marginTop: 0,
+    marginBottom: 12,
+  },
   monthHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -251,7 +255,7 @@ const styles = StyleSheet.create({
   monthText: {
     color: COLORS.ink,
     fontSize: 20,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   syncRow: {
     flexDirection: 'row',
@@ -287,7 +291,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: COLORS.ink,
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '700',
     marginTop: 20,
     marginBottom: 10,
   },

@@ -37,6 +37,6 @@ const styles = StyleSheet.create({
     borderColor: COLORS.teal,
     padding: 24,
   },
-  korean: { color: COLORS.ink, fontSize: 26, lineHeight: 38, fontWeight: '800' },
+  korean: { color: COLORS.ink, fontSize: 26, lineHeight: 38, fontWeight: '700' },
   english: { color: COLORS.muted, fontSize: 14, lineHeight: 20, marginTop: 16 },
 });

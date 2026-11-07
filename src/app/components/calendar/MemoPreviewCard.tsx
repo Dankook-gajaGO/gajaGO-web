@@ -26,13 +26,13 @@ const styles = StyleSheet.create({
   date: {
     color: COLORS.teal,
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '700',
     marginBottom: 4,
   },
   title: {
     color: COLORS.ink,
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   content: {
     color: COLORS.muted,

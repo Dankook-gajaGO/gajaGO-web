@@ -6,17 +6,19 @@ interface TransportIntroCardProps {
   onReset: () => void;
 }
 
+// 큰 안내 박스 대신 한 줄 안내 + 새로 시작 버튼 (아래 예시 질문이 사용법을 대신 보여줌)
 export function TransportIntroCard({ onReset }: TransportIntroCardProps) {
   return (
     <View style={styles.card}>
-      <Feather name="navigation" size={30} color={COLORS.teal} />
-      <Text style={styles.title}>교통 챗봇</Text>
-      <Text style={styles.description}>
-        첫 메시지로 후보지를 찾고, 후보 선택 후 경로를 받아옵니다.
-      </Text>
-      <Pressable style={styles.resetButton} onPress={onReset}>
-        <Feather name="refresh-ccw" size={14} color={COLORS.teal} />
-        <Text style={styles.resetButtonText}>새 경로</Text>
+      <View style={styles.icon}>
+        <Feather name="navigation" size={20} color={COLORS.teal} />
+      </View>
+      <View style={styles.textWrap}>
+        <Text style={styles.title}>어디로 가세요?</Text>
+        <Text style={styles.description}>출발지와 목적지를 말하면 대중교통 경로를 찾아드려요</Text>
+      </View>
+      <Pressable style={styles.resetButton} onPress={onReset} accessibilityRole="button" accessibilityLabel="새 경로 찾기">
+        <Feather name="refresh-ccw" size={16} color={COLORS.muted} />
       </Pressable>
     </View>
   );
@@ -24,43 +26,40 @@ export function TransportIntroCard({ onReset }: TransportIntroCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    minHeight: 152,
-    borderRadius: radius.xl,
-    backgroundColor: '#EAF6F5',
-    borderWidth: 1,
-    borderColor: '#CDECEA',
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  icon: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    backgroundColor: COLORS.tealSoft,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
+    marginRight: 12,
+  },
+  textWrap: {
+    flex: 1,
   },
   title: {
     color: COLORS.ink,
     fontSize: 18,
-    fontWeight: '900',
-    marginTop: 10,
+    fontWeight: '700',
   },
   description: {
     color: COLORS.muted,
     fontSize: 13,
-    lineHeight: 19,
-    textAlign: 'center',
-    marginTop: 6,
+    lineHeight: 18,
+    marginTop: 2,
   },
   resetButton: {
-    minHeight: 32,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#B8E5E2',
-    backgroundColor: COLORS.white,
-    flexDirection: 'row',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.card,
     alignItems: 'center',
-    paddingHorizontal: 12,
-    marginTop: 12,
-  },
-  resetButtonText: {
-    color: COLORS.teal,
-    fontSize: 12,
-    fontWeight: '900',
-    marginLeft: 5,
+    justifyContent: 'center',
+    marginLeft: 8,
   },
 });

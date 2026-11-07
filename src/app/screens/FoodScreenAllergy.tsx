@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
   filterTitle: {
     color: COLORS.ink,
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '700',
     marginTop: 16,
     marginBottom: 10,
   },
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: COLORS.teal,
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   saveMessage: {
     flexShrink: 1,
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
   resultCount: {
     color: COLORS.ink,
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   resultCondition: {
     color: COLORS.muted,

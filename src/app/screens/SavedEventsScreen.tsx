@@ -208,13 +208,13 @@ const styles = StyleSheet.create({
   title: {
     color: COLORS.ink,
     fontSize: 17,
-    fontWeight: '900',
+    fontWeight: '700',
     lineHeight: 23,
   },
   meta: {
     color: COLORS.teal,
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '700',
     marginTop: 6,
   },
   address: {
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
   actionText: {
     color: COLORS.ink,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     marginLeft: 5,
   },
   removeButton: {
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
   removeText: {
     color: COLORS.red,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     marginLeft: 5,
   },
   disabledButton: {

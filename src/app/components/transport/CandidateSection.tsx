@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
   title: {
     color: COLORS.ink,
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '700',
     marginBottom: 8,
   },
   card: {
@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
   name: {
     color: COLORS.ink,
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   address: {
     color: COLORS.muted,

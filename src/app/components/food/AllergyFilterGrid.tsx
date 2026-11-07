@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
   text: {
     color: COLORS.text,
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
     marginLeft: 6,
   },
   activeText: {

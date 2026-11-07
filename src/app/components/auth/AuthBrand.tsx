@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
   brand: {
     color: COLORS.ink,
     fontSize: 28,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   tagline: {
     color: COLORS.muted,

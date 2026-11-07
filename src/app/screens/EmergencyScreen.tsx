@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   alertTitle: {
     color: COLORS.ink,
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '700',
     marginTop: 10,
   },
   alertText: {
@@ -142,28 +142,27 @@ const styles = StyleSheet.create({
   },
   callGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    gap: 8,
     marginTop: 16,
   },
   callButton: {
-    width: '48%',
+    flex: 1,
     minHeight: 96,
     borderRadius: radius.lg,
     backgroundColor: COLORS.white,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: '2%',
     marginBottom: 10,
   },
   callNumber: {
     fontSize: 26,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   callLabel: {
     color: COLORS.muted,
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '700',
     marginTop: 4,
   },
   embassyCard: {
@@ -175,7 +174,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: COLORS.ink,
     fontSize: 17,
-    fontWeight: '900',
+    fontWeight: '700',
     marginBottom: 10,
   },
   infoRow: {
@@ -202,7 +201,7 @@ const styles = StyleSheet.create({
   phraseButtonText: {
     color: COLORS.white,
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '700',
     marginLeft: 8,
   },
   modalOverlay: {
@@ -226,7 +225,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     color: COLORS.ink,
     fontSize: 19,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   closeButton: {
     width: 36,
@@ -245,7 +244,7 @@ const styles = StyleSheet.create({
   phraseEn: {
     color: COLORS.ink,
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   phraseKo: {
     color: COLORS.muted,
