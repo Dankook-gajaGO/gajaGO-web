@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ComponentProps } from 'react';
-import { Modal, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -12,6 +12,7 @@ import {
   getExpenses,
   getSavedFestivals,
   getServerTodayKey,
+  updateExpense,
   type ExpenseItem,
 } from '../api';
 import { AppHeader } from '../components/common/AppHeader';
@@ -56,7 +57,10 @@ function dayLabel(date: string, today: string) {
   return `${Number(m)}월 ${Number(d)}일`;
 }
 
-type Sheet = null | 'add' | 'split';
+type Sheet = null | 'add' | 'edit' | 'split';
+
+// 세부 내용이 없으면(분류 이름과 같으면) 분류만 표시
+const detailOf = (item: ExpenseItem) => (item.title && item.title !== item.category ? item.title : '');
 
 export default function ExpenseScreen({ navigation }: Props) {
   // 비회원도 들어와서 N빵 계산은 가능. 지출 저장·목록은 회원만
@@ -76,6 +80,7 @@ export default function ExpenseScreen({ navigation }: Props) {
   const [draftTitle, setDraftTitle] = useState('');
   const [draftCategory, setDraftCategory] = useState(CATEGORIES[0].name);
   const [sheetMessage, setSheetMessage] = useState('');
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     const member = await isLoggedIn();
@@ -121,6 +126,16 @@ export default function ExpenseScreen({ navigation }: Props) {
     setSheet('add');
   };
 
+  // 연필: 세부 내용(예: 00음식점)·금액·분류 수정
+  const openEdit = (item: ExpenseItem) => {
+    setEditingId(item.id);
+    setDraftAmount(item.amount);
+    setDraftTitle(detailOf(item));
+    setDraftCategory(item.category);
+    setSheetMessage('');
+    setSheet('edit');
+  };
+
   const openSplit = () => {
     setDraftAmount(splitInput || total);
     setSheetMessage('');
@@ -138,9 +153,15 @@ export default function ExpenseScreen({ navigation }: Props) {
       return;
     }
     try {
-      const title = draftTitle.trim() || draftCategory; // 내용을 비우면 분류 이름으로
-      const created = await addExpense({ spentOn: today, title, amount: draftAmount, category: draftCategory });
-      setItems((current) => [created, ...current]);
+      const title = draftTitle.trim() || draftCategory; // 세부 내용을 비우면 분류 이름으로
+      const body = { title, amount: draftAmount, category: draftCategory };
+      if (sheet === 'edit' && editingId !== null) {
+        const updated = await updateExpense(editingId, body);
+        setItems((current) => current.map((i) => (i.id === updated.id ? updated : i)));
+      } else {
+        const created = await addExpense({ spentOn: today, ...body });
+        setItems((current) => [created, ...current]);
+      }
       setSheet(null);
     } catch (error) {
       setSheetMessage(getApiErrorMessage(error));
@@ -156,19 +177,45 @@ export default function ExpenseScreen({ navigation }: Props) {
     }
   };
 
-  // 백업: 가계부 + 저장한 행사를 CSV 텍스트로 공유(메모·메일·드라이브 등에 저장)
+  // 백업: 요약·N빵·분류별·내역·저장한 행사를 텍스트로. 폰은 공유 메뉴, PC(웹)는 파일 다운로드
   const exportData = async () => {
     if (!(await ensureLoggedIn(navigation))) return;
     try {
       const saved = await getSavedFestivals().catch(() => ({ savedFestivals: [] as { title: string }[] }));
-      const csv = [
-        '[가계부] 날짜,분류,내용,금액(원)',
-        ...items.map((i) => `${i.spentOn},${i.category},"${i.title.replace(/"/g, '""')}",${i.amount}`),
+      const fx = (n: number) => (rateValue > 0 ? ` (${toForeign(n)})` : '');
+      const text = [
+        `가자GO 여행 가계부 (${today} 내보냄)`,
+        '',
+        '[요약]',
+        `총 지출: ${won(total)}${fx(total)}`,
+        `기록 ${items.length}건 · 하루 평균 ${won(dayCount ? total / dayCount : 0)}`,
+        '',
+        '[N빵]',
+        `나눌 금액 ${won(splitBase)} ÷ ${people}명 → 한 사람당 ${won(perPerson)}${fx(perPerson)}`,
+        '',
+        '[어디에 썼을까요]',
+        ...byCategory.map((c) => `${c.name} ${won(c.sum)} (${Math.round((c.sum / total) * 100)}%)`),
+        '',
+        '[내역] 날짜,분류,세부 내용,금액(원)',
+        ...items.map((i) => `${i.spentOn},${i.category},"${detailOf(i).replace(/"/g, '""')}",${i.amount}`),
         '',
         '[저장한 행사]',
-        ...saved.savedFestivals.map((f) => f.title),
+        ...saved.savedFestivals.map((f) => `- ${f.title}`),
       ].join('\n');
-      await Share.share({ title: '가자GO 내 기록', message: csv });
+
+      if (Platform.OS === 'web') {
+        // PC 브라우저: 텍스트 파일로 저장
+        const doc = (globalThis as unknown as { document: any }).document;
+        const url = URL.createObjectURL(new Blob(['\uFEFF' + text], { type: 'text/plain;charset=utf-8' }));
+        const a = doc.createElement('a');
+        a.href = url;
+        a.download = `gajago-가계부-${today}.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+        setMessage('파일로 저장했어요');
+      } else {
+        await Share.share({ title: '가자GO 여행 가계부', message: text });
+      }
     } catch (error) {
       setMessage(getApiErrorMessage(error));
     }
@@ -320,13 +367,24 @@ export default function ExpenseScreen({ navigation }: Props) {
                   {list.map((item) => {
                     const c = categoryOf(item.category);
                     return (
-                      <View key={item.id} style={styles.row}>
+                      <Pressable
+                        key={item.id}
+                        style={styles.row}
+                        onPress={() => openEdit(item)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${item.category} ${detailOf(item)} 수정`}
+                      >
                         <View style={[styles.rowIcon, { backgroundColor: `${c.color}1F` }]}>
                           <Feather name={c.icon} size={16} color={c.color} />
                         </View>
                         <View style={styles.rowBody}>
-                          <Text style={styles.rowTitle}>{item.title}</Text>
-                          <Text style={styles.subText}>{item.category}</Text>
+                          <View style={styles.rowTitleLine}>
+                            <Text style={styles.rowName}>{item.category}</Text>
+                            <Feather name="edit-2" size={12} color={COLORS.muted} style={styles.pencil} />
+                          </View>
+                          <Text style={detailOf(item) ? styles.detailText : styles.detailEmpty} numberOfLines={1}>
+                            {detailOf(item) || '세부 내용 추가'}
+                          </Text>
                         </View>
                         <View style={styles.rowRight}>
                           <Text style={styles.rowAmount}>-{won(item.amount)}</Text>
@@ -335,7 +393,7 @@ export default function ExpenseScreen({ navigation }: Props) {
                         <Pressable onPress={() => remove(item.id)} style={styles.rowDelete} accessibilityLabel={`${item.title} 삭제`}>
                           <Feather name="x" size={16} color={COLORS.muted} />
                         </Pressable>
-                      </View>
+                      </Pressable>
                     );
                   })}
                 </View>
@@ -370,13 +428,13 @@ export default function ExpenseScreen({ navigation }: Props) {
         <Pressable style={styles.backdrop} onPress={() => setSheet(null)} accessibilityLabel="닫기" />
         <View style={styles.sheet}>
           <View style={styles.handle} />
-          <Text style={styles.sheetTitle}>{sheet === 'split' ? '얼마를 나눌까요?' : '얼마를 썼나요?'}</Text>
+          <Text style={styles.sheetTitle}>{sheet === 'split' ? '얼마를 나눌까요?' : sheet === 'edit' ? '지출 수정' : '얼마를 썼나요?'}</Text>
           <Text style={[styles.sheetAmount, draftAmount === 0 ? styles.sheetAmountEmpty : null]}>
             {draftAmount > 0 ? won(draftAmount) : '0원'}
           </Text>
           {rateValue > 0 && draftAmount > 0 ? <Text style={styles.sheetConverted}>{toForeign(draftAmount)}</Text> : null}
 
-          {sheet === 'add' ? (
+          {sheet === 'add' || sheet === 'edit' ? (
             <>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sheetChips}>
                 {CATEGORIES.map((c) => {
@@ -399,7 +457,7 @@ export default function ExpenseScreen({ navigation }: Props) {
                 style={styles.titleInput}
                 value={draftTitle}
                 onChangeText={setDraftTitle}
-                placeholder={`내용 (비우면 '${draftCategory}')`}
+                placeholder="세부 내용 (예: 명동교자, 공항철도)"
                 placeholderTextColor={COLORS.muted}
               />
             </>
@@ -408,11 +466,13 @@ export default function ExpenseScreen({ navigation }: Props) {
           <AmountKeypad value={draftAmount} onChange={setDraftAmount} />
           {sheetMessage ? <Text style={styles.message}>{sheetMessage}</Text> : null}
           <Pressable
-            style={[styles.cta, styles.sheetCta, sheet === 'add' && draftAmount === 0 ? styles.ctaDisabled : null]}
+            style={[styles.cta, styles.sheetCta, sheet !== 'split' && draftAmount === 0 ? styles.ctaDisabled : null]}
             onPress={confirmSheet}
             accessibilityRole="button"
           >
-            <Text style={styles.ctaText}>{sheet === 'split' ? '확인' : draftAmount > 0 ? `${won(draftAmount)} 기록하기` : '기록하기'}</Text>
+            <Text style={styles.ctaText}>
+              {sheet === 'split' ? '확인' : sheet === 'edit' ? '수정 완료' : draftAmount > 0 ? `${won(draftAmount)} 기록하기` : '기록하기'}
+            </Text>
           </Pressable>
         </View>
       </Modal>
@@ -467,6 +527,11 @@ const styles = StyleSheet.create({
   rowRight: { alignItems: 'flex-end' },
   rowAmount: { color: COLORS.ink, fontSize: 15, fontWeight: '800' },
   rowDelete: { padding: 6, marginLeft: 6 },
+  rowTitleLine: { flexDirection: 'row', alignItems: 'center' },
+  rowName: { color: COLORS.ink, fontSize: 15, fontWeight: '700' },
+  pencil: { marginLeft: 6 },
+  detailText: { color: COLORS.text, fontSize: 13, marginTop: 2 },
+  detailEmpty: { color: COLORS.muted, fontSize: 12, marginTop: 2, textDecorationLine: 'underline' },
   subText: { color: COLORS.muted, fontSize: 12, marginTop: 2 },
 
   dayGroup: { marginBottom: 6 },
