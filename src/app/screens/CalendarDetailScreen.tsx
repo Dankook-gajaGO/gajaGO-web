@@ -23,6 +23,8 @@ import type { RootStackParamList } from '../routes';
 import { COLORS } from '../theme';
 import { getFallbackTodayKey, getMonthStartDate } from '../utils/date';
 import { ExpenseDayCard } from '../components/expense/ExpenseDayCard';
+import { ReminderPicker } from '../components/common/ReminderPicker';
+import { scheduleItemReminder, type ReminderOption } from '../utils/notifications';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CalendarDetail'>;
 
@@ -50,6 +52,7 @@ export default function CalendarDetailScreen({ navigation, route }: Props) {
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [scheduleItems, setScheduleItems] = useState<ScheduleItemApi[]>([]);
   const [draft, setDraft] = useState('');
+  const [reminder, setReminder] = useState<ReminderOption>('none');
   const [isResolvingDate, setIsResolvingDate] = useState(!routeDate);
   const [isLoadingItems, setIsLoadingItems] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
@@ -133,6 +136,8 @@ export default function CalendarDetailScreen({ navigation, route }: Props) {
       });
       setScheduleItems((items) => [...items, created]);
       setDraft('');
+      void scheduleItemReminder({ itemId: created.itemId, title, date: selectedDate }, reminder);
+      setReminder('none');
       setStatusMessage('메모를 추가했어요');
     } catch (error) {
       setStatusMessage(getApiErrorMessage(error));
@@ -187,6 +192,9 @@ export default function CalendarDetailScreen({ navigation, route }: Props) {
         ) : null}
 
         <ExpenseDayCard date={selectedDate} onPress={() => navigation.navigate('Expense')} />
+        <View style={styles.reminderWrap}>
+          <ReminderPicker value={reminder} onChange={setReminder} />
+        </View>
         <SelectedDatePanel
           selectedDate={selectedDate}
           memos={selectedMemos}
@@ -217,6 +225,7 @@ function Legend({ color, label }: { color: string; label: string }) {
 }
 
 const styles = StyleSheet.create({
+  reminderWrap: { paddingHorizontal: 20 },
   safe: {
     flex: 1,
     backgroundColor: COLORS.screen,

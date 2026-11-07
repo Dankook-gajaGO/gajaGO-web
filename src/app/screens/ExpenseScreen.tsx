@@ -119,6 +119,7 @@ export default function ExpenseScreen({ navigation }: Props) {
   const [tripStart, setTripStart] = useState(getFallbackTodayKey());
   const [tripEnd, setTripEnd] = useState(getFallbackTodayKey());
   const [tripMessage, setTripMessage] = useState('');
+  const [tripAlarm, setTripAlarm] = useState(false);
 
   const load = useCallback(async () => {
     const member = await isLoggedIn();
@@ -184,6 +185,7 @@ export default function ExpenseScreen({ navigation }: Props) {
     setTripStart(today);
     setTripEnd(shiftDate(today, 2));
     setTripMessage('');
+    setTripAlarm(false);
     setTripSheet(true);
   };
 
@@ -194,7 +196,7 @@ export default function ExpenseScreen({ navigation }: Props) {
     }
     try {
       const created = await addTrip({ name: tripName.trim(), startDate: tripStart, endDate: tripEnd });
-      void scheduleTripReminder(created);
+      if (tripAlarm) void scheduleTripReminder(created);
       setTrips((list) => [created, ...list].sort((a, b) => (a.startDate < b.startDate ? 1 : -1)));
       setTripId(created.id);
       setTripSheet(false);
@@ -661,6 +663,15 @@ export default function ExpenseScreen({ navigation }: Props) {
               </Pressable>
             </View>
           ))}
+          <Pressable
+            style={styles.alarmToggle}
+            onPress={() => setTripAlarm((v) => !v)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: tripAlarm }}
+          >
+            <Feather name={tripAlarm ? 'check-square' : 'square'} size={18} color={tripAlarm ? COLORS.teal : COLORS.muted} />
+            <Text style={styles.alarmToggleText}>여행 시작일 아침 8시에 알림 받기</Text>
+          </Pressable>
           {tripMessage ? <Text style={styles.message}>{tripMessage}</Text> : null}
           <Pressable style={[styles.cta, styles.sheetCta]} onPress={createTrip} accessibilityRole="button">
             <Text style={styles.ctaText}>여행 만들기</Text>
@@ -809,6 +820,8 @@ const styles = StyleSheet.create({
   chipTextOn: { color: COLORS.white },
   titleInput: { minHeight: 46, borderRadius: radius.md, backgroundColor: COLORS.card, paddingHorizontal: 14, marginTop: 10, marginBottom: 6, color: COLORS.ink, fontSize: 15 },
   sheetCta: { marginTop: 10 },
+  alarmToggle: { flexDirection: 'row', alignItems: 'center', marginTop: 14 },
+  alarmToggleText: { color: COLORS.text, fontSize: 14, fontWeight: '600', marginLeft: 8 },
   tripBar: { backgroundColor: COLORS.white, flexGrow: 0 },
   tripBarInner: { paddingHorizontal: 22, paddingTop: 14, alignItems: 'center' },
   tripChip: { borderRadius: 16, backgroundColor: COLORS.card, paddingHorizontal: 14, paddingVertical: 8, marginRight: 8 },

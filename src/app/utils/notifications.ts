@@ -57,23 +57,36 @@ async function cancel(...identifiers: string[]) {
   await Promise.all(identifiers.map((id) => Notifications.cancelScheduledNotificationAsync(id).catch(() => undefined)));
 }
 
-// 저장한 행사: 전날·당일 오전 9시
-export async function scheduleFestivalReminders(festival: { contentId: number; title: string; startDate: string }) {
+// 일정·캘린더: 등록할 때 사용자가 고른 경우에만 예약 (자동 알림 없음)
+export type ReminderOption = 'none' | 'sameDay' | 'dayBefore';
+export const REMINDER_OPTIONS: Array<{ id: ReminderOption; label: string }> = [
+  { id: 'none', label: '알림 없음' },
+  { id: 'sameDay', label: '당일 오전 9시' },
+  { id: 'dayBefore', label: '전날 저녁 8시' },
+];
+
+// 예약됐으면 true (알림 없음·권한 거절·이미 지난 시각·웹이면 false)
+export async function scheduleItemReminder(item: { itemId: number; title: string; date: string }, option: ReminderOption) {
+  if (option === 'none') return false;
   try {
-    if (!(await ensurePermission())) return;
-    const data = { screen: 'EventDetails', eventId: String(festival.contentId) };
-    await schedule(`festival-${festival.contentId}-d1`, reminderDate(festival.startDate, 9, -1), '내일 행사가 시작돼요', festival.title, data);
-    await schedule(`festival-${festival.contentId}-d0`, reminderDate(festival.startDate, 9), '오늘 행사가 시작돼요', festival.title, data);
+    if (!(await ensurePermission())) return false;
+    const at = option === 'sameDay' ? reminderDate(item.date, 9) : reminderDate(item.date, 20, -1);
+    if (at.getTime() <= Date.now()) return false;
+    await schedule(`schedule-${item.itemId}`, at, option === 'sameDay' ? '오늘 일정이 있어요' : '내일 일정이 있어요', item.title, {
+      screen: 'CalendarDetail',
+      date: item.date,
+    });
+    return true;
   } catch {
-    // 알림 예약 실패가 저장 자체를 막지 않게
+    return false; // 알림 예약 실패가 일정 저장을 막지 않게
   }
 }
 
-export function cancelFestivalReminders(contentId: number) {
-  return cancel(`festival-${contentId}-d1`, `festival-${contentId}-d0`);
+export function cancelScheduleReminder(itemId: number) {
+  return cancel(`schedule-${itemId}`);
 }
 
-// 여행: 시작일 오전 8시
+// 여행: 시작일 오전 8시 (여행 만들 때 사용자가 켠 경우만)
 export async function scheduleTripReminder(trip: { id: number; name: string; startDate: string }) {
   try {
     if (!(await ensurePermission())) return;

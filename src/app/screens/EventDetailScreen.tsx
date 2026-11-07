@@ -21,7 +21,6 @@ import { COLORS, radius } from '../theme';
 import { getFallbackTodayKey } from '../utils/date';
 import { ensureLoggedIn } from '../utils/requireLogin';
 import { openGooglePlace, openKakaoPlace, openNaverPlace } from '../utils/maps';
-import { cancelFestivalReminders, scheduleFestivalReminders } from '../utils/notifications';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EventDetails'>;
 
@@ -130,12 +129,10 @@ export default function EventDetailScreen({ navigation, route }: Props) {
     try {
       if (isSaved) {
         await deleteSavedFestival(event.contentId);
-        void cancelFestivalReminders(event.contentId);
         setIsSaved(false);
         setStatusMessage('저장을 취소했어요');
       } else {
         await saveFestival(event.contentId);
-        void scheduleFestivalReminders({ contentId: event.contentId, title: event.title, startDate: event.startDate });
         setIsSaved(true);
         setStatusMessage('저장했어요');
       }

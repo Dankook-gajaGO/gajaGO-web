@@ -35,6 +35,8 @@ export default function App() {
         if (!navigationRef.isReady()) return;
         if (data.screen === 'EventDetails' && typeof data.eventId === 'string') {
           navigationRef.navigate('EventDetails', { eventId: data.eventId });
+        } else if (data.screen === 'CalendarDetail' && typeof data.date === 'string') {
+          navigationRef.navigate('CalendarDetail', { date: data.date });
         } else if (data.screen === 'Expense') {
           navigationRef.navigate('Expense');
         }

@@ -31,6 +31,8 @@ import type { RootStackParamList } from '../routes';
 import { COLORS, radius } from '../theme';
 import { getFallbackTodayKey } from '../utils/date';
 import { ExpenseDayCard } from '../components/expense/ExpenseDayCard';
+import { ReminderPicker } from '../components/common/ReminderPicker';
+import { cancelScheduleReminder, scheduleItemReminder, type ReminderOption } from '../utils/notifications';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Schedule'>;
 
@@ -60,6 +62,7 @@ export default function ScheduleScreen({ navigation, route }: Props) {
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [items, setItems] = useState<ScheduleItemApi[]>([]);
   const [draft, setDraft] = useState('');
+  const [reminder, setReminder] = useState<ReminderOption>('none');
   const [isResolvingDate, setIsResolvingDate] = useState(!routeDate);
   const [isLoadingItems, setIsLoadingItems] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -129,7 +132,9 @@ export default function ScheduleScreen({ navigation, route }: Props) {
       });
       setItems((current) => [...current, created]);
       setDraft('');
-      setStatusMessage('일정을 추가했어요');
+      const alarmed = await scheduleItemReminder({ itemId: created.itemId, title, date: selectedDate }, reminder);
+      setReminder('none');
+      setStatusMessage(alarmed ? '일정을 추가하고 알림을 예약했어요' : '일정을 추가했어요');
     } catch (error) {
       setStatusMessage(getApiErrorMessage(error));
     } finally {
@@ -145,6 +150,7 @@ export default function ScheduleScreen({ navigation, route }: Props) {
 
     try {
       await deleteScheduleItem(itemId);
+      void cancelScheduleReminder(itemId);
       setItems((current) => current.filter((item) => item.itemId !== itemId));
       setStatusMessage('삭제했어요');
     } catch (error) {
@@ -200,6 +206,9 @@ export default function ScheduleScreen({ navigation, route }: Props) {
         ) : null}
 
         <Text style={styles.sectionTitle}>오늘 일정</Text>
+        <View style={styles.reminderWrap}>
+          <ReminderPicker value={reminder} onChange={setReminder} />
+        </View>
         <DayScheduleSection places={places} onRemovePlace={removePlace} />
       </ScrollView>
       <BottomNavBar active="Schedule" navigation={navigation} />
@@ -208,6 +217,7 @@ export default function ScheduleScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
+  reminderWrap: { paddingHorizontal: 20 },
   safe: {
     flex: 1,
     backgroundColor: COLORS.screen,
