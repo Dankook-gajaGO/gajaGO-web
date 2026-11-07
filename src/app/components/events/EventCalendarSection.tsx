@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
   monthText: {
     color: COLORS.ink,
     fontSize: 28,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   subText: {
     color: COLORS.muted,
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     width: `${100 / 7}%`,
     color: COLORS.ink,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     textAlign: 'center',
   },
   sunday: {
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   dayText: {
     color: COLORS.ink,
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '700',
     marginBottom: 6,
   },
   eventList: {
@@ -216,6 +216,6 @@ const styles = StyleSheet.create({
   moreText: {
     color: COLORS.muted,
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '700',
   },
 });

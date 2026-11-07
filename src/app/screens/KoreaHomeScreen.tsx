@@ -51,7 +51,7 @@ export default function KoreaHomeScreen({ navigation }: Props) {
         <HomeShortcutCards
           onOpenCalendar={() => navigation.navigate('CalendarDetail', { country })}
           onOpenSchedule={() => navigation.navigate('Schedule', { country })}
-          onOpenEvents={() => navigation.navigate('AllEvents', { country })}
+          onOpenExpense={() => navigation.navigate('Expense')}
         />
       </ScrollView>
 
@@ -66,12 +66,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
   },
   content: {
-    paddingBottom: 26,
+    paddingBottom: 32,
   },
   sectionHeader: {
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 12,
+    paddingTop: 16,
+    paddingBottom: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -79,11 +79,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: COLORS.ink,
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   linkText: {
     color: COLORS.teal,
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
   },
 });

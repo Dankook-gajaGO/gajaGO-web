@@ -13,6 +13,8 @@ export const COLORS = {
   screen: '#F4F6F8',
   card: '#F7F8FA',
   white: '#FFFFFF',
+  tealSoft: '#E5F7F7',
+  disabled: '#B8BCC4',
 };
 
 export const radius = {

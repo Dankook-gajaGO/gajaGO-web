@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
   list: {
     paddingLeft: 20,
     paddingRight: 10,
-    marginBottom: 24,
+    marginBottom: 32,
   },
   loading: {
     width: 310,
@@ -70,8 +70,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   card: {
-    width: 310,
-    height: 190,
+    width: 300,
+    height: 200,
     borderRadius: radius.xl,
     overflow: 'hidden',
     marginRight: 12,
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
   },
   scrim: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.34)',
+    backgroundColor: 'rgba(0,0,0,0.28)',
   },
   tag: {
     position: 'absolute',
@@ -99,15 +99,15 @@ const styles = StyleSheet.create({
   tagText: {
     color: COLORS.white,
     fontSize: 11,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   textWrap: {
     padding: 16,
   },
   title: {
     color: COLORS.white,
-    fontSize: 19,
-    fontWeight: '900',
+    fontSize: 20,
+    fontWeight: '700',
   },
   meta: {
     color: 'rgba(255,255,255,0.86)',

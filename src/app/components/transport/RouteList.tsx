@@ -35,6 +35,8 @@ export function RouteList({
   isLoading,
   onSelectRoute,
 }: RouteListProps) {
+  if (routes.length === 0 && !isLoading) return null;
+
   return (
     <>
       <Text style={styles.sectionTitle}>추천 경로</Text>
@@ -42,15 +44,6 @@ export function RouteList({
         <View style={styles.loadingRow}>
           <ActivityIndicator color={COLORS.teal} />
           <Text style={styles.loadingText}>경로를 계산하는 중입니다.</Text>
-        </View>
-      ) : null}
-
-      {routes.length === 0 && !isLoading ? (
-        <View style={[styles.routeCard, shadow.card]}>
-          <Text style={styles.routeTitle}>경로 대기 중</Text>
-          <Text style={styles.routeMeta}>
-            출발지와 목적지를 선택하면 추천 경로가 표시됩니다.
-          </Text>
         </View>
       ) : null}
 
@@ -114,7 +107,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: COLORS.ink,
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '700',
     marginTop: 22,
     marginBottom: 12,
   },
@@ -153,7 +146,7 @@ const styles = StyleSheet.create({
   routeTitle: {
     color: COLORS.ink,
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   routeMeta: {
     color: COLORS.muted,
@@ -179,7 +172,7 @@ const styles = StyleSheet.create({
   badgeText: {
     color: COLORS.muted,
     fontSize: 11,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   activeBadgeText: {
     color: COLORS.teal,
@@ -192,12 +185,12 @@ const styles = StyleSheet.create({
   walkingText: {
     color: COLORS.teal,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   routeSelectText: {
     color: COLORS.muted,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   activeRouteSelectText: {
     color: COLORS.teal,

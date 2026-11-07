@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
   title: {
     color: COLORS.ink,
     fontSize: 28,
-    fontWeight: '900',
+    fontWeight: '700',
     textAlign: 'center',
   },
   body: {
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: COLORS.white,
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: '700',
     marginRight: 6,
   },
 });

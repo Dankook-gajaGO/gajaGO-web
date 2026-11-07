@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
   badgeText: {
     color: COLORS.teal,
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   distanceWrap: {
     flexDirection: 'row',
@@ -79,12 +79,12 @@ const styles = StyleSheet.create({
   distance: {
     color: COLORS.blue,
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   facilityName: {
     color: COLORS.ink,
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   address: {
     color: COLORS.muted,

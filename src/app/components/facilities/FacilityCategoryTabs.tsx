@@ -3,7 +3,7 @@ import {
   facilityCategoryTabs,
   type FacilityCategoryTab,
 } from '../../hooks/useNearbyFacilities';
-import { COLORS, radius } from '../../theme';
+import { COLORS } from '../../theme';
 
 interface FacilityCategoryTabsProps {
   selectedCategory: FacilityCategoryTab;
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
   categoryChip: {
     height: 38,
     paddingHorizontal: 14,
-    borderRadius: radius.sm,
+    borderRadius: 19,
     borderWidth: 1,
     borderColor: COLORS.line,
     backgroundColor: COLORS.white,
@@ -56,15 +56,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   categoryChipActive: {
-    borderColor: COLORS.teal,
-    backgroundColor: '#E7FAF8',
+    borderColor: COLORS.ink,
+    backgroundColor: COLORS.ink,
   },
   categoryText: {
     color: COLORS.text,
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   categoryTextActive: {
-    color: COLORS.teal,
+    color: COLORS.white,
   },
 });

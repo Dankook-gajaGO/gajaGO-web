@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
   title: {
     color: COLORS.ink,
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   clearButton: {
     width: 34,
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: '#E5F7F7',
+    backgroundColor: COLORS.tealSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
   itemTitle: {
     color: COLORS.ink,
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   itemMeta: {
     color: COLORS.muted,

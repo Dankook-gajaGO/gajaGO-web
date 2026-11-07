@@ -118,6 +118,6 @@ const styles = StyleSheet.create({
   signupText: {
     color: COLORS.teal,
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '700',
   },
 });

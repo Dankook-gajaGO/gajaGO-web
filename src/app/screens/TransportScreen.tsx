@@ -179,7 +179,7 @@ export default function TransportScreen({ navigation, route }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={0}
     >
-      <AppHeader title="교통 경로" onBack={() => navigation.goBack()} />
+      <AppHeader title="길찾기" onBack={() => navigation.goBack()} />
       <ScrollView
         ref={scrollRef}
         showsVerticalScrollIndicator={false}

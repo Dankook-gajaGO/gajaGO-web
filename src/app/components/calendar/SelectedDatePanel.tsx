@@ -62,19 +62,19 @@ const styles = StyleSheet.create({
   date: {
     color: COLORS.ink,
     fontSize: 17,
-    fontWeight: '900',
+    fontWeight: '700',
     marginBottom: 12,
   },
   memo: {
     borderRadius: radius.md,
-    backgroundColor: '#E5F7F7',
+    backgroundColor: COLORS.tealSoft,
     padding: 12,
     marginBottom: 8,
   },
   memoTitle: {
     color: COLORS.text,
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   memoContent: {
     color: COLORS.muted,

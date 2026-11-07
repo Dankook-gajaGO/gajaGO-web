@@ -34,6 +34,6 @@ const styles = StyleSheet.create({
   suggestionText: {
     color: COLORS.text,
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
   },
 });

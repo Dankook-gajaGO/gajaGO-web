@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
-  expenseEntryText: { flex: 1, color: COLORS.white, fontSize: 15, fontWeight: '900', marginLeft: 10 },
+  expenseEntryText: { flex: 1, color: COLORS.white, fontSize: 15, fontWeight: '700', marginLeft: 10 },
   screen: {
     flex: 1,
     backgroundColor: COLORS.screen,
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
   tabText: {
     color: COLORS.muted,
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   activeTabText: {
     color: COLORS.teal,
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
   },
   notice: {
     borderRadius: radius.lg,
-    backgroundColor: '#E5F7F7',
+    backgroundColor: COLORS.tealSoft,
     padding: 14,
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: COLORS.ink,
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '700',
     marginTop: 10,
     marginBottom: 10,
   },
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: radius.md,
-    backgroundColor: '#E5F7F7',
+    backgroundColor: COLORS.tealSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     color: COLORS.ink,
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   cardBody: {
     color: COLORS.text,
