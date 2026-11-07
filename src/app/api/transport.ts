@@ -156,10 +156,22 @@ function normalizeRoutesResponse(response: unknown): TransportRoutesResult {
   };
 }
 
-export async function createTransportInitialRequest(message: string) {
+// coords: 기기 현재 위치. 출발지를 말하지 않으면 서버가 이 위치를 출발지로 사용
+// destination: 좌표를 이미 아는 도착지(행사 등). 있으면 서버가 장소 검색 없이 그대로 도착지 후보로 씀
+export async function createTransportInitialRequest(
+  message: string,
+  coords?: { lat: number; lng: number } | null,
+  destination?: PlaceCandidate | null
+) {
   const response = await apiRequest<unknown>('/api/transport/InitialRequest', {
     method: 'POST',
-    body: { message },
+    body: {
+      message,
+      ...(coords ?? {}),
+      ...(destination
+        ? { destName: destination.name, destAddress: destination.address, destLat: destination.lat, destLng: destination.lng }
+        : {}),
+    },
   });
 
   return normalizeInitialResponse(response);

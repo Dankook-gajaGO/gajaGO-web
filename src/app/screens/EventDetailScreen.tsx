@@ -106,6 +106,18 @@ export default function EventDetailScreen({ navigation, route }: Props) {
     if (homepageUrl) void Linking.openURL(homepageUrl);
   };
 
+  // 출발지는 말하지 않음 -> 챗봇이 현재 위치에서 출발. 행사 좌표가 있으면 장소 검색 없이 그 좌표로 안내
+  const openDirections = () => {
+    if (!event) return;
+    const lat = detail?.lat;
+    const lng = detail?.lng;
+    navigation.navigate('Transport', {
+      country,
+      initialMessage: `${event.title}까지 어떻게 가?`,
+      destination: lat != null && lng != null ? { name: event.title, address: event.location, lat, lng } : undefined,
+    });
+  };
+
   const toggleSaved = async () => {
     if (!event || isSaving) return;
 
@@ -212,6 +224,11 @@ export default function EventDetailScreen({ navigation, route }: Props) {
               >
                 <Feather name="calendar" size={17} color={COLORS.ink} />
                 <Text style={styles.secondaryText}>일정 추가</Text>
+              </Pressable>
+
+              <Pressable style={styles.secondaryButton} onPress={openDirections}>
+                <Feather name="navigation" size={17} color={COLORS.ink} />
+                <Text style={styles.secondaryText}>길찾기</Text>
               </Pressable>
 
               {homepageUrl ? (
