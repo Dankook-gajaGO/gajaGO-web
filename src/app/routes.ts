@@ -24,6 +24,7 @@ export type RootStackParamList = {
   EventDetails: { eventId?: string; country?: CountryKey } | undefined;
   CalendarDetail: { country?: CountryKey; date?: string } | undefined;
   Payment: { country?: CountryKey } | undefined;
+  Expense: undefined;
   ShowCard: { title: string; korean: string; english: string };
 };
 
