@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { getApiErrorMessage, getMyAllergies, saveMyAllergies } from '../api';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppHeader } from '../components/common/AppHeader';
 import { EmptyState } from '../components/common/EmptyState';
@@ -10,6 +11,7 @@ import { foodAllergies } from '../data/food';
 import { useSafeFoods } from '../hooks/useSafeFoods';
 import type { RootStackParamList } from '../routes';
 import { COLORS } from '../theme';
+import { ensureLoggedIn, isLoggedIn } from '../utils/requireLogin';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Food'>;
 
@@ -17,6 +19,41 @@ export default function FoodScreenAllergy({ navigation }: Props) {
   const [query, setQuery] = useState('');
   const [selectedAllergies, setSelectedAllergies] = useState<string[]>([]);
   const { foods, statusMessage, isLoading } = useSafeFoods(selectedAllergies);
+  const [allergyMessage, setAllergyMessage] = useState('');
+  const [isSavingAllergies, setIsSavingAllergies] = useState(false);
+
+  // 회원이면 저장해 둔 내 알러지를 필터로 불러옴 (비회원은 매번 직접 선택)
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      if (!(await isLoggedIn())) return;
+      try {
+        const { allergies } = await getMyAllergies();
+        if (active && allergies.length > 0) {
+          setSelectedAllergies(allergies);
+          setAllergyMessage('저장한 내 알러지를 불러왔어요');
+        }
+      } catch {
+        // 불러오기 실패해도 직접 선택해서 쓸 수 있음
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const saveAllergies = async () => {
+    if (isSavingAllergies || !(await ensureLoggedIn(navigation))) return;
+    setIsSavingAllergies(true);
+    try {
+      await saveMyAllergies(selectedAllergies);
+      setAllergyMessage(selectedAllergies.length > 0 ? '내 알러지로 저장했어요' : '저장한 알러지를 비웠어요');
+    } catch (error) {
+      setAllergyMessage(getApiErrorMessage(error));
+    } finally {
+      setIsSavingAllergies(false);
+    }
+  };
 
   const filteredFoods = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -47,6 +84,17 @@ export default function FoodScreenAllergy({ navigation }: Props) {
           selectedAllergies={selectedAllergies}
           onToggle={toggleAllergy}
         />
+        <View style={styles.saveRow}>
+          <Pressable
+            style={[styles.saveButton, isSavingAllergies ? styles.saveButtonDisabled : null]}
+            onPress={saveAllergies}
+            disabled={isSavingAllergies}
+            accessibilityRole="button"
+          >
+            <Text style={styles.saveButtonText}>내 알러지로 저장</Text>
+          </Pressable>
+          {allergyMessage ? <Text style={styles.saveMessage}>{allergyMessage}</Text> : null}
+        </View>
         <View style={styles.resultSummary}>
           <Text style={styles.resultCount}>추천 음식 {filteredFoods.length}개</Text>
           <Text style={styles.resultCondition}>{allergySummary}</Text>
@@ -93,6 +141,34 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     marginTop: 16,
     marginBottom: 10,
+  },
+  saveRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  saveButton: {
+    minHeight: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: COLORS.teal,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+  },
+  saveButtonDisabled: {
+    opacity: 0.5,
+  },
+  saveButtonText: {
+    color: COLORS.teal,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  saveMessage: {
+    flexShrink: 1,
+    color: COLORS.muted,
+    fontSize: 12,
+    fontWeight: '700',
+    marginLeft: 10,
   },
   resultSummary: {
     minHeight: 48,

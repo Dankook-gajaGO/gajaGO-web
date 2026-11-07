@@ -102,3 +102,15 @@ export function deleteScheduleItem(itemId: number) {
     method: 'DELETE',
   });
 }
+
+// 내 알러지 (회원 전용): 음식 화면에서 필터로 불러오고 저장
+export function getMyAllergies() {
+  return apiRequest<{ allergies: string[] }>('/api/member/allergies');
+}
+
+export function saveMyAllergies(allergies: string[]) {
+  return apiRequest<{ allergies: string[] }>('/api/member/allergies', {
+    method: 'PUT',
+    body: { allergies },
+  });
+}
