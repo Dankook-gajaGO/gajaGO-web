@@ -29,6 +29,25 @@ export function openKakaoRoute(from: Place, to: Place) {
   );
 }
 
-export function openGooglePlace(place: Place) {
-  return Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`);
+// 장소 보기: 좌표만 넘기면 지도에 좌표 숫자만 떠서, 이름(+주소)이 보이게 열어요
+type NamedPlace = Place & { address?: string };
+const cleanAddress = (address?: string) => (address ?? '').replace(/\s*\([^)]*\)/g, '').trim();
+
+// 구글: "이름 + 주소" 검색 -> 실제 장소가 결과로 뜸 (앱 없으면 웹)
+export function openGooglePlace(place: NamedPlace) {
+  const query = [place.name, cleanAddress(place.address)].filter(Boolean).join(' ') || `${place.lat},${place.lng}`;
+  return Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`);
+}
+
+// 카카오: 웹 링크가 앱 없이도 열리고, 정확한 좌표에 우리가 준 이름으로 핀 표시
+export function openKakaoPlace(place: NamedPlace) {
+  return Linking.openURL(`https://map.kakao.com/link/map/${encodeURIComponent(place.name)},${place.lat},${place.lng}`);
+}
+
+// 네이버: 앱이 있으면 앱(이름 핀), 없으면 웹에서 주소 검색
+export function openNaverPlace(place: NamedPlace) {
+  return openAppOrWeb(
+    `nmap://place?lat=${place.lat}&lng=${place.lng}&name=${encodeURIComponent(place.name)}&appname=com.gajago.app`,
+    `https://map.naver.com/p/search/${encodeURIComponent(cleanAddress(place.address) || place.name)}`
+  );
 }

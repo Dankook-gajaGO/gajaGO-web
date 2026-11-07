@@ -20,7 +20,7 @@ import type { RootStackParamList } from '../routes';
 import { COLORS, radius } from '../theme';
 import { getFallbackTodayKey } from '../utils/date';
 import { ensureLoggedIn } from '../utils/requireLogin';
-import { openGooglePlace } from '../utils/maps';
+import { openGooglePlace, openKakaoPlace, openNaverPlace } from '../utils/maps';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EventDetails'>;
 
@@ -234,13 +234,28 @@ export default function EventDetailScreen({ navigation, route }: Props) {
               </Pressable>
 
               {detail?.lat != null && detail?.lng != null ? (
-                <Pressable
-                  style={styles.secondaryButton}
-                  onPress={() => void openGooglePlace({ name: event.title, lat: detail.lat as number, lng: detail.lng as number })}
-                >
-                  <Feather name="map" size={17} color={COLORS.ink} />
-                  <Text style={styles.secondaryText}>지도에서 보기</Text>
-                </Pressable>
+                <View style={styles.mapRow}>
+                  {(
+                    [
+                      ['구글 지도', openGooglePlace],
+                      ['카카오맵', openKakaoPlace],
+                      ['네이버 지도', openNaverPlace],
+                    ] as const
+                  ).map(([label, open]) => (
+                    <Pressable
+                      key={label}
+                      style={[styles.secondaryButton, styles.mapButton]}
+                      onPress={() =>
+                        void open({ name: event.title, address: event.location, lat: detail.lat as number, lng: detail.lng as number })
+                      }
+                      accessibilityRole="button"
+                      accessibilityLabel={`${label}에서 보기`}
+                    >
+                      <Feather name="map" size={15} color={COLORS.ink} />
+                      <Text style={[styles.secondaryText, styles.mapButtonText]}>{label}</Text>
+                    </Pressable>
+                  ))}
+                </View>
               ) : null}
 
               {homepageUrl ? (
@@ -407,6 +422,9 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     marginLeft: 7,
   },
+  mapRow: { flexDirection: 'row', gap: 6 },
+  mapButton: { flex: 1, paddingHorizontal: 4 },
+  mapButtonText: { fontSize: 13, marginLeft: 4 },
   secondaryButton: {
     minHeight: 52,
     borderRadius: radius.lg,
