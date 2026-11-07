@@ -8,6 +8,7 @@ declare const process: {
 
 const DEFAULT_API_BASE_URL = 'http://10.0.2.2:8080';
 const AUTH_TOKEN_STORAGE_KEY = 'gajago.authToken';
+const REQUEST_TIMEOUT_MS = 30_000;
 
 const envApiBaseUrl =
   typeof process === 'undefined' ? undefined : process.env?.EXPO_PUBLIC_API_BASE_URL;
@@ -157,11 +158,23 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(buildUrl(path), {
-    ...options,
-    headers,
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
-  });
+  // 서버가 응답하지 않으면 무한 대기 대신 30초 뒤 실패 (챗봇은 Gemini+TMAP 호출로 느릴 수 있음)
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  let response: Response;
+  try {
+    response = await fetch(buildUrl(path), {
+      ...options,
+      headers,
+      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      signal: controller.signal,
+    });
+  } catch {
+    throw new ApiError(0, '서버에 연결할 수 없습니다. 인터넷 연결을 확인하고 잠시 후 다시 시도해주세요.', null);
+  } finally {
+    clearTimeout(timer);
+  }
 
   const text = await response.text();
   const parsed = parseBody(text);
