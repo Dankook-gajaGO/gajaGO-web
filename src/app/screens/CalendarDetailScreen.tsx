@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Feather from '@expo/vector-icons/Feather';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { LOGIN_REQUIRED_MESSAGE, ensureLoggedIn, isLoggedIn, useLoginPromptOnFocus } from '../utils/requireLogin';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -39,6 +40,7 @@ function toCalendarMemo(item: ScheduleItemApi): Memo {
 }
 
 export default function CalendarDetailScreen({ navigation, route }: Props) {
+  useLoginPromptOnFocus(navigation);
   const routeDate = route.params?.date;
   const fallbackToday = getFallbackTodayKey();
   const initialDate = routeDate ?? fallbackToday;
@@ -85,8 +87,12 @@ export default function CalendarDetailScreen({ navigation, route }: Props) {
   }, [routeDate]);
 
   const loadMonthlyItems = useCallback(async () => {
-    setIsLoadingItems(true);
     setStatusMessage('');
+    if (!(await isLoggedIn())) {
+      setStatusMessage(LOGIN_REQUIRED_MESSAGE);
+      return;
+    }
+    setIsLoadingItems(true);
 
     try {
       const response = await getMonthlyScheduleItems(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1);
@@ -114,7 +120,7 @@ export default function CalendarDetailScreen({ navigation, route }: Props) {
 
   const addMemo = async () => {
     const title = draft.trim();
-    if (!title) return;
+    if (!title || !(await ensureLoggedIn(navigation))) return;
 
     setStatusMessage('');
 

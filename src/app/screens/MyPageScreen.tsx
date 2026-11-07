@@ -8,6 +8,7 @@ import { AppHeader } from '../components/common/AppHeader';
 import { BottomNavBar } from '../components/BottomNavBar';
 import type { RootStackParamList } from '../routes';
 import { COLORS, radius } from '../theme';
+import { useLoginPromptOnFocus } from '../utils/requireLogin';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MyPage'>;
 type FeatherName = ComponentProps<typeof Feather>['name'];
@@ -27,7 +28,7 @@ const rows: Array<{
   },
   {
     label: '로그아웃',
-    caption: '로그인 화면으로 돌아갑니다.',
+    caption: '로그아웃하고 비회원으로 계속 둘러봅니다.',
     icon: 'log-out',
     action: 'logout',
     danger: true,
@@ -35,6 +36,7 @@ const rows: Array<{
 ];
 
 export default function MyPageScreen({ navigation }: Props) {
+  useLoginPromptOnFocus(navigation);
   const handleRow = async (action: 'saved' | 'logout') => {
     if (action === 'saved') {
       navigation.navigate('SavedEvents');
@@ -42,7 +44,7 @@ export default function MyPageScreen({ navigation }: Props) {
     }
 
     await setAuthToken(null);
-    navigation.replace('Login');
+    navigation.navigate('Home');
   };
 
   return (

@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import Feather from '@expo/vector-icons/Feather';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { LOGIN_REQUIRED_MESSAGE, isLoggedIn, useLoginPromptOnFocus } from '../utils/requireLogin';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   createScheduleItem,
@@ -32,14 +33,19 @@ function getScheduleDate(event: SavedFestivalApi) {
 }
 
 export default function SavedEventsScreen({ navigation }: Props) {
+  useLoginPromptOnFocus(navigation);
   const [events, setEvents] = useState<SavedFestivalApi[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [workingId, setWorkingId] = useState<number | null>(null);
   const [statusMessage, setStatusMessage] = useState('');
 
   const loadSavedEvents = useCallback(async () => {
-    setIsLoading(true);
     setStatusMessage('');
+    if (!(await isLoggedIn())) {
+      setStatusMessage(LOGIN_REQUIRED_MESSAGE);
+      return;
+    }
+    setIsLoading(true);
 
     try {
       const response = await getSavedFestivals();

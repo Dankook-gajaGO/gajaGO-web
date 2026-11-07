@@ -11,11 +11,15 @@ import { COLORS } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
-export default function LoginScreen({ navigation }: Props) {
+export default function LoginScreen({ navigation, route }: Props) {
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  const returnAfterLogin = route.params?.returnAfterLogin;
+  // 저장하려다 온 경우 원래 화면으로, 아니면 홈으로
+  const leave = () => (returnAfterLogin && navigation.canGoBack() ? navigation.goBack() : navigation.replace('Home'));
 
   const login = async () => {
     const trimmedLoginId = loginId.trim();
@@ -29,7 +33,7 @@ export default function LoginScreen({ navigation }: Props) {
 
     try {
       await loginMember({ loginId: trimmedLoginId, password });
-      navigation.replace('Home');
+      leave();
     } catch (error) {
       setStatusMessage(getApiErrorMessage(error));
     } finally {
@@ -60,11 +64,11 @@ export default function LoginScreen({ navigation }: Props) {
       </View>
 
       <View style={styles.bottomActions}>
-        <Pressable style={styles.bottomAction} onPress={() => navigation.replace('Home')}>
+        <Pressable style={styles.bottomAction} onPress={leave}>
           <Text style={styles.guestText}>게스트로 둘러보기</Text>
         </Pressable>
         <View style={styles.bottomDivider} />
-        <Pressable style={styles.bottomAction} onPress={() => navigation.navigate('Signup')}>
+        <Pressable style={styles.bottomAction} onPress={() => navigation.navigate('Signup', { returnAfterLogin })}>
           <Text style={styles.signupText}>회원가입하기</Text>
         </Pressable>
       </View>

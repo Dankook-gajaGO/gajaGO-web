@@ -117,5 +117,6 @@ export function getSafeFoodList(selectedAllergies: string[]) {
   return apiRequest<SafeFoodListResponse>('/api/food/safeFoodList', {
     method: 'POST',
     body: { selectedAllergies },
+    auth: false, // 비회원도 사용
   });
 }

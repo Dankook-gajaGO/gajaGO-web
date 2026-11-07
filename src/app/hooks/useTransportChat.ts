@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import * as Location from 'expo-location';
 import {
   ApiError,
@@ -82,19 +82,17 @@ export function useTransportChat() {
 
   const selectedRoute = routes.find((route) => route.id === selectedRouteId) ?? null;
 
-  useEffect(() => {
-    let mounted = true;
-
-    void hydrateAuthToken().then((token) => {
-      if (!mounted) return;
-      setIsAuthorized(Boolean(token));
-      setIsAuthReady(true);
-    });
-
-    return () => {
-      mounted = false;
-    };
+  // 로그인 화면에서 돌아왔을 때도 다시 확인할 수 있게 함수로 둠
+  const refreshAuth = useCallback(async () => {
+    const token = getAuthToken() ?? (await hydrateAuthToken());
+    setIsAuthorized(Boolean(token));
+    setIsAuthReady(true);
+    if (token) setErrorMessage((current) => (current === authRequiredMessage ? '' : current));
   }, []);
+
+  useEffect(() => {
+    void refreshAuth();
+  }, [refreshAuth]);
 
   useEffect(() => {
     const hasSessionData =
@@ -157,8 +155,10 @@ export function useTransportChat() {
       return;
     }
 
-    setErrorMessage(getApiErrorMessage(error));
-    addAssistantMessage('교통 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+    // 서버가 알려준 이유(예: "출발지를 함께 알려주세요")를 챗봇 답변으로 그대로 보여줌
+    const reason = getApiErrorMessage(error);
+    setErrorMessage(reason);
+    addAssistantMessage(reason);
   };
 
   const loadRoutes = async (
@@ -300,6 +300,7 @@ export function useTransportChat() {
     errorMessage,
     isAuthReady,
     isAuthorized,
+    refreshAuth,
     chooseCandidate,
     sendMessage,
     resetSession,

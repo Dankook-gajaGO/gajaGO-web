@@ -12,7 +12,7 @@ import { COLORS } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Signup'>;
 
-export default function SignupScreen({ navigation }: Props) {
+export default function SignupScreen({ navigation, route }: Props) {
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
@@ -43,7 +43,9 @@ export default function SignupScreen({ navigation }: Props) {
         email: `${trimmedLoginId}@gajago.local`,
       });
       await loginMember({ loginId: trimmedLoginId, password });
-      navigation.replace('Home');
+      // 저장하려다 로그인 -> 회원가입으로 온 경우: 로그인·회원가입 화면을 닫고 원래 화면으로
+      if (route.params?.returnAfterLogin) navigation.pop(2);
+      else navigation.replace('Home');
     } catch (error) {
       setStatusMessage(getApiErrorMessage(error));
     } finally {
@@ -53,7 +55,7 @@ export default function SignupScreen({ navigation }: Props) {
 
   return (
     <Screen keyboard scroll contentContainerStyle={styles.screen}>
-      <Pressable style={styles.backButton} onPress={() => navigation.replace('Login')}>
+      <Pressable style={styles.backButton} onPress={() => navigation.replace('Login', route.params)}>
         <Feather name="chevron-left" size={20} color={COLORS.text} />
         <Text style={styles.backText}>로그인</Text>
       </Pressable>
@@ -86,7 +88,7 @@ export default function SignupScreen({ navigation }: Props) {
 
       <View style={styles.bottomRow}>
         <Text style={styles.bottomText}>이미 계정이 있나요?</Text>
-        <Pressable onPress={() => navigation.replace('Login')}>
+        <Pressable onPress={() => navigation.replace('Login', route.params)}>
           <Text style={styles.bottomLink}>로그인하기</Text>
         </Pressable>
       </View>

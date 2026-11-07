@@ -19,6 +19,7 @@ import { festivalDetailToEvent, type FestivalEventItem } from '../data/festivalE
 import type { RootStackParamList } from '../routes';
 import { COLORS, radius } from '../theme';
 import { getFallbackTodayKey } from '../utils/date';
+import { ensureLoggedIn } from '../utils/requireLogin';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EventDetails'>;
 
@@ -107,8 +108,8 @@ export default function EventDetailScreen({ navigation, route }: Props) {
   };
 
   // 출발지는 말하지 않음 -> 챗봇이 현재 위치에서 출발. 행사 좌표가 있으면 장소 검색 없이 그 좌표로 안내
-  const openDirections = () => {
-    if (!event) return;
+  const openDirections = async () => {
+    if (!event || !(await ensureLoggedIn(navigation))) return;
     const lat = detail?.lat;
     const lng = detail?.lng;
     navigation.navigate('Transport', {
@@ -119,7 +120,7 @@ export default function EventDetailScreen({ navigation, route }: Props) {
   };
 
   const toggleSaved = async () => {
-    if (!event || isSaving) return;
+    if (!event || isSaving || !(await ensureLoggedIn(navigation))) return;
 
     setIsSaving(true);
     setStatusMessage('');
@@ -142,7 +143,7 @@ export default function EventDetailScreen({ navigation, route }: Props) {
   };
 
   const addToCalendar = async () => {
-    if (!event || isAddingSchedule) return;
+    if (!event || isAddingSchedule || !(await ensureLoggedIn(navigation))) return;
 
     const date = getEventScheduleDate(event);
     setIsAddingSchedule(true);
