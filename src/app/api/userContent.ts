@@ -141,6 +141,6 @@ export function getExchangeRates() {
   return apiRequest<{ krwPer: Record<string, number>; updatedAt: string }>('/api/exchange-rates', { auth: false });
 }
 
-export function updateExpense(id: number, body: { title: string; amount: number; category: string }) {
+export function updateExpense(id: number, body: { spentOn: string; title: string; amount: number; category: string }) {
   return apiRequest<ExpenseItem>(`/api/expenses/${encodeURIComponent(id)}`, { method: 'PUT', body });
 }
