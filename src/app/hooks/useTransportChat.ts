@@ -1,0 +1,266 @@
+import { useEffect, useState } from 'react';
+import * as Location from 'expo-location';
+import {
+  ApiError,
+  createTransportInitialRequest,
+  getApiErrorMessage,
+  getTransportRoutes,
+  type PlaceCandidate,
+  type TransportRoute,
+} from '../api';
+import {
+  clearLatestTransportSession,
+  getLatestTransportSession,
+  saveLatestTransportSession,
+  type TransportChatMessage,
+} from '../data/transportSession';
+import type { TransportRouteHistoryItem } from '../data/transportHistory';
+
+export type CandidateKind = 'departure' | 'destination';
+
+
+export const transportSuggestions = [
+  '여기서 경복궁까지 어떻게 가?',
+  '서울역에서 경복궁까지 다리를 다쳤는데 어떻게 가?',
+  '단국대학교에서 서울역 가려면 짐이 많은데 어떻게 가?',
+  '공항에서 명동까지 환승 적은 경로 알려줘',
+];
+
+export const initialTransportMessages: TransportChatMessage[] = [
+  {
+    id: 'welcome',
+    role: 'assistant',
+    text: '이동 상황을 알려주시면 출발지와 목적지 후보를 찾은 뒤 경로를 추천해드릴게요.',
+  },
+];
+
+// "경복궁 가고 싶어"처럼 출발지가 없을 때 쓸 현재 위치. 권한이 없거나 실패하면 null (출발지를 직접 말하면 됨)
+async function getCurrentCoords() {
+  try {
+    const permission = await Location.requestForegroundPermissionsAsync();
+    if (permission.status !== Location.PermissionStatus.GRANTED) return null;
+    const position =
+      (await Location.getLastKnownPositionAsync({ maxAge: 5 * 60_000 })) ??
+      (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }));
+    return { lat: position.coords.latitude, lng: position.coords.longitude };
+  } catch {
+    return null;
+  }
+}
+
+export function useTransportChat() {
+  const latestSession = getLatestTransportSession();
+  const [message, setMessage] = useState('');
+  const [messages, setMessages] = useState<TransportChatMessage[]>(
+    latestSession?.messages ?? initialTransportMessages
+  );
+  const [requestId, setRequestId] = useState<number | null>(latestSession?.requestId ?? null);
+  const [departureCandidates, setDepartureCandidates] = useState<PlaceCandidate[]>(
+    latestSession?.departureCandidates ?? []
+  );
+  const [destinationCandidates, setDestinationCandidates] = useState<PlaceCandidate[]>(
+    latestSession?.destinationCandidates ?? []
+  );
+  const [selectedDeparture, setSelectedDeparture] = useState<PlaceCandidate | null>(
+    latestSession?.selectedDeparture ?? null
+  );
+  const [selectedDestination, setSelectedDestination] = useState<PlaceCandidate | null>(
+    latestSession?.selectedDestination ?? null
+  );
+  const [routes, setRoutes] = useState<TransportRoute[]>(latestSession?.routes ?? []);
+  const [selectedRouteId, setSelectedRouteId] = useState<string | null>(
+    latestSession?.selectedRouteId ?? null
+  );
+  const [isInitialLoading, setIsInitialLoading] = useState(false);
+  const [isRoutesLoading, setIsRoutesLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const selectedRoute = routes.find((route) => route.id === selectedRouteId) ?? null;
+
+  useEffect(() => {
+    const hasSessionData =
+      messages.length > initialTransportMessages.length ||
+      requestId !== null ||
+      departureCandidates.length > 0 ||
+      destinationCandidates.length > 0 ||
+      routes.length > 0;
+
+    if (!hasSessionData) return;
+
+    saveLatestTransportSession({
+      messages,
+      requestId,
+      departureCandidates,
+      destinationCandidates,
+      selectedDeparture,
+      selectedDestination,
+      routes,
+      selectedRouteId,
+    });
+  }, [
+    messages,
+    requestId,
+    departureCandidates,
+    destinationCandidates,
+    selectedDeparture,
+    selectedDestination,
+    routes,
+    selectedRouteId,
+  ]);
+
+  const addAssistantMessage = (text: string) => {
+    setMessages((items) => [
+      ...items,
+      { id: `assistant-${Date.now()}-${items.length}`, role: 'assistant', text },
+    ]);
+  };
+
+  // 길찾기는 비회원도 사용. 기록 저장(최근 경로·일정)만 회원 전용
+  const handleTransportError = (error: unknown) => {
+    // 서버가 알려준 이유(예: "출발지를 함께 알려주세요")를 챗봇 답변으로 그대로 보여줌
+    const reason = getApiErrorMessage(error);
+    setErrorMessage(reason);
+    addAssistantMessage(reason);
+  };
+
+  const loadRoutes = async (
+    nextRequestId: number,
+    nextDeparture: PlaceCandidate,
+    nextDestination: PlaceCandidate
+  ) => {
+
+    setIsRoutesLoading(true);
+    setErrorMessage('');
+    setRoutes([]);
+    setSelectedRouteId(null);
+
+    try {
+      const response = await getTransportRoutes({
+        requestId: nextRequestId,
+        selectedDeparture: nextDeparture,
+        selectedDestination: nextDestination,
+      });
+
+      setRoutes(response.routes ?? []);
+      addAssistantMessage('추천 경로를 가져왔습니다. 요약과 추천 사유를 보고 하나를 선택해주세요.');
+    } catch (error) {
+      handleTransportError(error);
+    } finally {
+      setIsRoutesLoading(false);
+    }
+  };
+
+  const chooseCandidate = (kind: CandidateKind, candidate: PlaceCandidate) => {
+    const nextDeparture = kind === 'departure' ? candidate : selectedDeparture;
+    const nextDestination = kind === 'destination' ? candidate : selectedDestination;
+
+    if (kind === 'departure') setSelectedDeparture(candidate);
+    if (kind === 'destination') setSelectedDestination(candidate);
+
+    if (requestId !== null && nextDeparture && nextDestination) {
+      void loadRoutes(requestId, nextDeparture, nextDestination);
+    }
+  };
+
+  const sendMessage = async (text = message, destination?: PlaceCandidate) => {
+    const trimmed = text.trim();
+    if (trimmed.length === 0 || isInitialLoading) return;
+
+
+    setMessage('');
+    setErrorMessage('');
+    setRequestId(null);
+    setDepartureCandidates([]);
+    setDestinationCandidates([]);
+    setSelectedDeparture(null);
+    setSelectedDestination(null);
+    setRoutes([]);
+    setSelectedRouteId(null);
+    setMessages((items) => [...items, { id: `user-${Date.now()}`, role: 'user', text: trimmed }]);
+    setIsInitialLoading(true);
+
+    try {
+      const response = await createTransportInitialRequest(trimmed, await getCurrentCoords(), destination);
+      setRequestId(response.requestId);
+      setDepartureCandidates(response.departureCandidates);
+      setDestinationCandidates(response.destinationCandidates);
+
+      if (response.extractedInfo) {
+        addAssistantMessage(
+          `파악한 이동 정보: 출발지 ${response.extractedInfo.departure}, 목적지 ${response.extractedInfo.destination}, 조건 ${response.extractedInfo.constraints}`
+        );
+      }
+
+      if (response.departureCandidates.length > 0 || response.destinationCandidates.length > 0) {
+        addAssistantMessage('출발지와 목적지 후보를 찾았습니다. 각각 하나씩 선택해주세요.');
+      } else {
+        addAssistantMessage('장소 후보를 찾지 못했습니다. 출발지와 목적지를 조금 더 구체적으로 입력해주세요.');
+      }
+    } catch (error) {
+      handleTransportError(error);
+    } finally {
+      setIsInitialLoading(false);
+    }
+  };
+
+  const resetSession = () => {
+    clearLatestTransportSession();
+    setMessage('');
+    setMessages(initialTransportMessages);
+    setRequestId(null);
+    setDepartureCandidates([]);
+    setDestinationCandidates([]);
+    setSelectedDeparture(null);
+    setSelectedDestination(null);
+    setRoutes([]);
+    setSelectedRouteId(null);
+    setErrorMessage('');
+  };
+
+  const restoreHistoryItem = (item: TransportRouteHistoryItem) => {
+    setMessage('');
+    setRequestId(item.requestId);
+    setDepartureCandidates([item.departure]);
+    setDestinationCandidates([item.destination]);
+    setSelectedDeparture(item.departure);
+    setSelectedDestination(item.destination);
+    setRoutes([item.route]);
+    setSelectedRouteId(item.route.id);
+    setErrorMessage('');
+    setMessages([
+      initialTransportMessages[0],
+      {
+        id: `history-user-${Date.now()}`,
+        role: 'user',
+        text: `${item.departure.name}에서 ${item.destination.name}까지 최근 저장 경로`,
+      },
+      {
+        id: `history-assistant-${Date.now()}`,
+        role: 'assistant',
+        text: '최근 선택했던 교통 경로를 다시 불러왔습니다. 상세 이동 순서와 일정 저장을 확인해보세요.',
+      },
+    ]);
+  };
+
+  return {
+    message,
+    setMessage,
+    messages,
+    departureCandidates,
+    destinationCandidates,
+    selectedDeparture,
+    selectedDestination,
+    requestId,
+    routes,
+    selectedRoute,
+    selectedRouteId,
+    setSelectedRouteId,
+    isInitialLoading,
+    isRoutesLoading,
+    errorMessage,
+    chooseCandidate,
+    sendMessage,
+    resetSession,
+    restoreHistoryItem,
+  };
+}

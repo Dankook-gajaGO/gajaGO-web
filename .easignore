@@ -1,0 +1,7 @@
+.git
+.expo
+node_modules
+outputs
+*.log
+expo-*.svg
+.env
