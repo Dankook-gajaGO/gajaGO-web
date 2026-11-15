@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Gajago",
+    "name": "가자GO",
     "slug": "gajago",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,7 +8,11 @@
     "scheme": "gajago",
     "android": {
       "package": "com.gajago.app",
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#14B8A6"
+      }
     },
     "plugins": [
       "expo-font",
@@ -27,6 +31,14 @@
         "projectId": "5cc4f2cf-022d-4961-b80b-fa608009993d"
       }
     },
-    "owner": "lwj117"
+    "owner": "lwj117",
+    "icon": "./assets/icon.png",
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "name": "가자GO",
+      "shortName": "가자GO",
+      "themeColor": "#14B8A6",
+      "backgroundColor": "#FFFFFF"
+    }
   }
 }
