@@ -27,8 +27,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run lint
-        run: npm run lint
+      # package.json 에 lint·build 스크립트가 없어 실제 있는 검사로 실행 (타입 검사 + 웹 번들 빌드)
+      - name: Run typecheck
+        run: npm run typecheck
 
       - name: Run build
-        run: npm run build
+        run: npx expo export --platform web --output-dir dist
