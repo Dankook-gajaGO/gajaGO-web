@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "Gajago",
+    "slug": "gajago",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "gajago",
+    "android": {
+      "package": "com.gajago.app",
+      "edgeToEdgeEnabled": true
+    },
+    "plugins": [
+      "expo-font",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
+      "expo-notifications"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "5cc4f2cf-022d-4961-b80b-fa608009993d"
+      }
+    },
+    "owner": "lwj117"
+  }
+}
