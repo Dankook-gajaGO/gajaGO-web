@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import Feather from '@expo/vector-icons/Feather';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { LOGIN_REQUIRED_MESSAGE, isLoggedIn, useLoginPromptOnFocus } from '../utils/requireLogin';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   createScheduleItem,
@@ -32,14 +33,19 @@ function getScheduleDate(event: SavedFestivalApi) {
 }
 
 export default function SavedEventsScreen({ navigation }: Props) {
+  useLoginPromptOnFocus(navigation);
   const [events, setEvents] = useState<SavedFestivalApi[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [workingId, setWorkingId] = useState<number | null>(null);
   const [statusMessage, setStatusMessage] = useState('');
 
   const loadSavedEvents = useCallback(async () => {
-    setIsLoading(true);
     setStatusMessage('');
+    if (!(await isLoggedIn())) {
+      setStatusMessage(LOGIN_REQUIRED_MESSAGE);
+      return;
+    }
+    setIsLoading(true);
 
     try {
       const response = await getSavedFestivals();
@@ -202,13 +208,13 @@ const styles = StyleSheet.create({
   title: {
     color: COLORS.ink,
     fontSize: 17,
-    fontWeight: '900',
+    fontWeight: '700',
     lineHeight: 23,
   },
   meta: {
     color: COLORS.teal,
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '700',
     marginTop: 6,
   },
   address: {
@@ -234,7 +240,7 @@ const styles = StyleSheet.create({
   actionText: {
     color: COLORS.ink,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     marginLeft: 5,
   },
   removeButton: {
@@ -248,7 +254,7 @@ const styles = StyleSheet.create({
   removeText: {
     color: COLORS.red,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     marginLeft: 5,
   },
   disabledButton: {

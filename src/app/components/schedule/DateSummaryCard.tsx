@@ -36,7 +36,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: radius.md,
-    backgroundColor: '#E5F7F7',
+    backgroundColor: COLORS.tealSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
   label: {
     color: COLORS.ink,
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   count: {
     color: COLORS.muted,

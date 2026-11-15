@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
   name: {
     color: COLORS.ink,
     fontSize: 17,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   area: {
     color: COLORS.muted,
@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   ingredientLabel: {
     color: COLORS.teal,
     fontSize: 11,
-    fontWeight: '900',
+    fontWeight: '700',
     marginBottom: 4,
   },
   ingredientText: {
@@ -97,6 +97,6 @@ const styles = StyleSheet.create({
   tagText: {
     color: COLORS.text,
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '700',
   },
 });

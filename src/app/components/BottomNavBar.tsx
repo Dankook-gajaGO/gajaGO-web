@@ -44,7 +44,7 @@ export function BottomNavBar({ active, navigation }: BottomNavBarProps) {
         const selected = active === item.route;
         return (
           <Pressable key={item.route} style={styles.item} onPress={() => handlePress(item.route)}>
-            <Feather name={item.icon} size={22} color={selected ? COLORS.teal : '#B8BCC4'} />
+            <Feather name={item.icon} size={22} color={selected ? COLORS.teal : COLORS.disabled} />
             <Text style={[styles.label, selected ? styles.activeLabel : styles.inactiveLabel]}>{item.label}</Text>
           </Pressable>
         );
@@ -73,10 +73,10 @@ const styles = StyleSheet.create({
   },
   activeLabel: {
     color: COLORS.teal,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   inactiveLabel: {
-    color: '#B8BCC4',
+    color: COLORS.disabled,
     fontWeight: '600',
   },
 });

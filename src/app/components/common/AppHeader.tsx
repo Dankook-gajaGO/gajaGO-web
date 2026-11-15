@@ -14,8 +14,8 @@ export function AppHeader({ title, subtitle, onBack, right }: AppHeaderProps) {
   return (
     <View style={styles.header}>
       {onBack ? (
-        <Pressable style={styles.iconButton} onPress={onBack} hitSlop={8}>
-          <Feather name="chevron-left" size={22} color={COLORS.ink} />
+        <Pressable style={styles.iconButton} onPress={onBack} hitSlop={8} accessibilityRole="button" accessibilityLabel="뒤로 가기">
+          <Feather name="chevron-left" size={26} color={COLORS.ink} />
         </Pressable>
       ) : (
         <View style={styles.placeholder} />
@@ -37,10 +37,10 @@ export function AppHeader({ title, subtitle, onBack, right }: AppHeaderProps) {
 
 const styles = StyleSheet.create({
   header: {
-    minHeight: 56,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
+    minHeight: 52,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: COLORS.line,
     backgroundColor: COLORS.white,
     flexDirection: 'row',
@@ -50,7 +50,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: radius.md,
-    backgroundColor: COLORS.card,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -64,8 +63,8 @@ const styles = StyleSheet.create({
   },
   title: {
     color: COLORS.ink,
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 17,
+    fontWeight: '700',
     textAlign: 'center',
   },
   subtitle: {

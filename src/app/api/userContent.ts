@@ -102,3 +102,65 @@ export function deleteScheduleItem(itemId: number) {
     method: 'DELETE',
   });
 }
+
+// 내 알러지 (회원 전용): 음식 화면에서 필터로 불러오고 저장
+export function getMyAllergies() {
+  return apiRequest<{ allergies: string[] }>('/api/member/allergies');
+}
+
+export function saveMyAllergies(allergies: string[]) {
+  return apiRequest<{ allergies: string[] }>('/api/member/allergies', {
+    method: 'PUT',
+    body: { allergies },
+  });
+}
+
+// 여행 가계부 (회원 전용). 금액은 원화
+export interface ExpenseItem {
+  id: number;
+  spentOn: string;
+  title: string;
+  amount: number;
+  category: string;
+}
+
+export function getExpenses() {
+  return apiRequest<ExpenseItem[]>('/api/expenses');
+}
+
+export function addExpense(body: { spentOn: string; title: string; amount: number; category: string }) {
+  return apiRequest<ExpenseItem>('/api/expenses', { method: 'POST', body });
+}
+
+export function deleteExpense(id: number) {
+  return apiRequest<null>(`/api/expenses/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+// 가계부 환산용 환율 (누구나). 서버가 12시간 캐시. krwPer: 1 외화 = N원
+export function getExchangeRates() {
+  return apiRequest<{ krwPer: Record<string, number>; updatedAt: string }>('/api/exchange-rates', { auth: false });
+}
+
+export function updateExpense(id: number, body: { spentOn: string; title: string; amount: number; category: string }) {
+  return apiRequest<ExpenseItem>(`/api/expenses/${encodeURIComponent(id)}`, { method: 'PUT', body });
+}
+
+// 여행 정보 (회원 전용). 이 기간의 지출이 이 여행의 가계부
+export interface TripItem {
+  id: number;
+  name: string;
+  startDate: string;
+  endDate: string;
+}
+
+export function getTrips() {
+  return apiRequest<TripItem[]>('/api/trips');
+}
+
+export function addTrip(body: { name: string; startDate: string; endDate: string }) {
+  return apiRequest<TripItem>('/api/trips', { method: 'POST', body });
+}
+
+export function deleteTrip(id: number) {
+  return apiRequest<null>(`/api/trips/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}

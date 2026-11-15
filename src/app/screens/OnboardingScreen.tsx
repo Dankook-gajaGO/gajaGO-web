@@ -43,7 +43,7 @@ export default function OnboardingScreen({ navigation }: Props) {
 
   const next = () => {
     if (last) {
-      navigation.replace('Login');
+      navigation.replace('Home');
       return;
     }
     setIndex((value) => value + 1);
@@ -51,7 +51,7 @@ export default function OnboardingScreen({ navigation }: Props) {
 
   return (
     <Screen contentContainerStyle={styles.screen}>
-      <Pressable style={styles.skip} onPress={() => navigation.replace('Login')}>
+      <Pressable style={styles.skip} onPress={() => navigation.replace('Home')}>
         <Text style={styles.skipText}>건너뛰기</Text>
       </Pressable>
       <View style={styles.hero}>
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
   title: {
     color: COLORS.ink,
     fontSize: 28,
-    fontWeight: '900',
+    fontWeight: '700',
     textAlign: 'center',
   },
   body: {
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: COLORS.white,
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: '700',
     marginRight: 6,
   },
 });

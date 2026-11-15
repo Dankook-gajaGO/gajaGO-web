@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     color: COLORS.ink,
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   emptyText: {
     color: COLORS.muted,
@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
   orderText: {
     color: COLORS.white,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   placeTextWrap: {
     flex: 1,
@@ -95,12 +95,12 @@ const styles = StyleSheet.create({
   placeName: {
     color: COLORS.ink,
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   placeMeta: {
     color: COLORS.teal,
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '700',
     marginTop: 3,
   },
   address: {

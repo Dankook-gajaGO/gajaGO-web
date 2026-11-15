@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
   brand: {
     color: COLORS.ink,
     fontSize: 30,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   caption: {
     color: COLORS.muted,

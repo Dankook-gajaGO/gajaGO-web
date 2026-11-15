@@ -5,6 +5,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppHeader } from '../components/common/AppHeader';
 import type { RootStackParamList } from '../routes';
 import { COLORS, radius, shadow } from '../theme';
+import { HELP_CARD } from '../utils/cards';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Emergency'>;
 
@@ -39,6 +40,15 @@ export default function EmergencyScreen({ navigation }: Props) {
           <CallButton label="소방/구급" number="119" color={COLORS.orange} onPress={() => call('119')} />
           <CallButton label="관광 안내" number="1330" color={COLORS.teal} onPress={() => call('1330')} />
         </View>
+
+        <Pressable
+          style={[styles.embassyCard, shadow.card]}
+          onPress={() => navigation.navigate('ShowCard', HELP_CARD)}
+          accessibilityRole="button"
+        >
+          <Text style={styles.sectionTitle}>도움 요청 카드</Text>
+          <Text style={styles.alertText}>한국어로 "도와주세요, 1330에 전화해 주세요"를 크게 보여줘요.</Text>
+        </Pressable>
 
         <View style={[styles.embassyCard, shadow.card]}>
           <Text style={styles.sectionTitle}>대사관 정보</Text>
@@ -120,7 +130,7 @@ const styles = StyleSheet.create({
   alertTitle: {
     color: COLORS.ink,
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '700',
     marginTop: 10,
   },
   alertText: {
@@ -132,28 +142,27 @@ const styles = StyleSheet.create({
   },
   callGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    gap: 8,
     marginTop: 16,
   },
   callButton: {
-    width: '48%',
+    flex: 1,
     minHeight: 96,
     borderRadius: radius.lg,
     backgroundColor: COLORS.white,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: '2%',
     marginBottom: 10,
   },
   callNumber: {
     fontSize: 26,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   callLabel: {
     color: COLORS.muted,
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '700',
     marginTop: 4,
   },
   embassyCard: {
@@ -165,7 +174,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: COLORS.ink,
     fontSize: 17,
-    fontWeight: '900',
+    fontWeight: '700',
     marginBottom: 10,
   },
   infoRow: {
@@ -192,7 +201,7 @@ const styles = StyleSheet.create({
   phraseButtonText: {
     color: COLORS.white,
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '700',
     marginLeft: 8,
   },
   modalOverlay: {
@@ -216,7 +225,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     color: COLORS.ink,
     fontSize: 19,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   closeButton: {
     width: 36,
@@ -235,7 +244,7 @@ const styles = StyleSheet.create({
   phraseEn: {
     color: COLORS.ink,
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   phraseKo: {
     color: COLORS.muted,

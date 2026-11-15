@@ -1,4 +1,5 @@
-import { NavigationContainer } from '@react-navigation/native';
+import { useEffect } from 'react';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'react-native';
 import AllEventsScreen from './screens/AllEventsScreen';
@@ -17,14 +18,34 @@ import ScheduleScreen from './screens/ScheduleScreen';
 import SignupScreen from './screens/SignupScreen';
 import SplashScreen from './screens/SplashScreen';
 import TransportScreen from './screens/TransportScreen';
+import ShowCardScreen from './screens/ShowCardScreen';
+import ExpenseScreen from './screens/ExpenseScreen';
 import type { RootStackParamList } from './routes';
 import { COLORS } from './theme';
+import { onNotificationTap } from './utils/notifications';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 export default function App() {
+  // 알림을 누르면: 행사 알림 -> 행사 상세, 여행 알림 -> 가계부
+  useEffect(
+    () =>
+      onNotificationTap((data) => {
+        if (!navigationRef.isReady()) return;
+        if (data.screen === 'EventDetails' && typeof data.eventId === 'string') {
+          navigationRef.navigate('EventDetails', { eventId: data.eventId });
+        } else if (data.screen === 'CalendarDetail' && typeof data.date === 'string') {
+          navigationRef.navigate('CalendarDetail', { date: data.date });
+        } else if (data.screen === 'Expense') {
+          navigationRef.navigate('Expense');
+        }
+      }),
+    []
+  );
+
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
       <Stack.Navigator
         initialRouteName="Splash"
@@ -50,6 +71,8 @@ export default function App() {
         <Stack.Screen name="EventDetails" component={EventDetailScreen} />
         <Stack.Screen name="CalendarDetail" component={CalendarDetailScreen} />
         <Stack.Screen name="Payment" component={PaymentScreen} />
+        <Stack.Screen name="ShowCard" component={ShowCardScreen} />
+        <Stack.Screen name="Expense" component={ExpenseScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

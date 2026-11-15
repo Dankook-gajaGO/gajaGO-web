@@ -1,6 +1,6 @@
 import { apiRequest } from './client';
 
-export type FacilityCategory = '은행' | 'ATM' | '편의점' | '화장실';
+export type FacilityCategory = '은행' | 'ATM' | '편의점' | '화장실' | '약국' | '지하철역' | '환전소';
 
 export interface FacilityItem {
   id: string;
@@ -28,7 +28,8 @@ export interface GetNearbyFacilitiesParams {
   categories?: FacilityCategory[];
 }
 
-export const facilityCategories: FacilityCategory[] = ['은행', 'ATM', '편의점', '화장실'];
+// '전체' 탭에 함께 나오는 시설. 환전소는 서버가 별도(키워드) 검색이라 전용 탭에서만
+export const facilityCategories: FacilityCategory[] = ['은행', 'ATM', '편의점', '화장실', '약국', '지하철역'];
 
 export function getNearbyFacilities({
   lat,

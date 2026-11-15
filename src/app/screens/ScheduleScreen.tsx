@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Feather from '@expo/vector-icons/Feather';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { LOGIN_REQUIRED_MESSAGE, ensureLoggedIn, isLoggedIn, useLoginPromptOnFocus } from '../utils/requireLogin';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -18,7 +19,6 @@ import { BottomNavBar } from '../components/BottomNavBar';
 import { DateSummaryCard } from '../components/schedule/DateSummaryCard';
 import { DayScheduleSection } from '../components/schedule/DayScheduleSection';
 import { ScheduleDatePicker } from '../components/schedule/ScheduleDatePicker';
-import { ScheduleMapPreview } from '../components/schedule/ScheduleMapPreview';
 import {
   createEmptyScheduleDays,
   createScheduleDay,
@@ -29,6 +29,9 @@ import {
 import type { RootStackParamList } from '../routes';
 import { COLORS, radius } from '../theme';
 import { getFallbackTodayKey } from '../utils/date';
+import { ExpenseDayCard } from '../components/expense/ExpenseDayCard';
+import { ReminderPicker } from '../components/common/ReminderPicker';
+import { cancelScheduleReminder, scheduleItemReminder, type ReminderOption } from '../utils/notifications';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Schedule'>;
 
@@ -50,6 +53,7 @@ function toPlace(item: ScheduleItemApi): Place {
 }
 
 export default function ScheduleScreen({ navigation, route }: Props) {
+  useLoginPromptOnFocus(navigation);
   const country = route.params?.country ?? 'korea';
   const routeDate = route.params?.date;
   const initialDate = routeDate ?? getFallbackTodayKey();
@@ -57,6 +61,7 @@ export default function ScheduleScreen({ navigation, route }: Props) {
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [items, setItems] = useState<ScheduleItemApi[]>([]);
   const [draft, setDraft] = useState('');
+  const [reminder, setReminder] = useState<ReminderOption>('none');
   const [isResolvingDate, setIsResolvingDate] = useState(!routeDate);
   const [isLoadingItems, setIsLoadingItems] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -84,8 +89,12 @@ export default function ScheduleScreen({ navigation, route }: Props) {
   }, [routeDate]);
 
   const loadItems = useCallback(async () => {
-    setIsLoadingItems(true);
     setStatusMessage('');
+    if (!(await isLoggedIn())) {
+      setStatusMessage(LOGIN_REQUIRED_MESSAGE);
+      return;
+    }
+    setIsLoadingItems(true);
 
     try {
       const response = await getScheduleItems(selectedDate);
@@ -109,7 +118,7 @@ export default function ScheduleScreen({ navigation, route }: Props) {
 
   const addSchedule = async () => {
     const title = draft.trim();
-    if (!title || isSaving) return;
+    if (!title || isSaving || !(await ensureLoggedIn(navigation))) return;
 
     setIsSaving(true);
     setStatusMessage('');
@@ -122,7 +131,9 @@ export default function ScheduleScreen({ navigation, route }: Props) {
       });
       setItems((current) => [...current, created]);
       setDraft('');
-      setStatusMessage('일정을 추가했어요');
+      const alarmed = await scheduleItemReminder({ itemId: created.itemId, title, date: selectedDate }, reminder);
+      setReminder('none');
+      setStatusMessage(alarmed ? '일정을 추가하고 알림을 예약했어요' : '일정을 추가했어요');
     } catch (error) {
       setStatusMessage(getApiErrorMessage(error));
     } finally {
@@ -138,6 +149,7 @@ export default function ScheduleScreen({ navigation, route }: Props) {
 
     try {
       await deleteScheduleItem(itemId);
+      void cancelScheduleReminder(itemId);
       setItems((current) => current.filter((item) => item.itemId !== itemId));
       setStatusMessage('삭제했어요');
     } catch (error) {
@@ -162,11 +174,10 @@ export default function ScheduleScreen({ navigation, route }: Props) {
         />
         <View style={styles.spacer} />
         <ScheduleDatePicker days={days} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
-        <View style={styles.spacer} />
-        <ScheduleMapPreview count={items.length} />
+        <ExpenseDayCard date={selectedDate} onPress={() => navigation.navigate('Expense')} />
 
         <View style={styles.inputCard}>
-          <Text style={styles.inputTitle}>오늘 일정</Text>
+          <Text style={styles.inputTitle}>일정 추가</Text>
           <View style={styles.inputRow}>
             <TextInput
               value={draft}
@@ -185,13 +196,15 @@ export default function ScheduleScreen({ navigation, route }: Props) {
               <Feather name="plus" size={20} color={COLORS.white} />
             </Pressable>
           </View>
+          {/* 알림은 등록할 때만 고름 (기본: 알림 없음) */}
+          <ReminderPicker value={reminder} onChange={setReminder} />
         </View>
 
         {statusMessage ? (
           <ToastMessage message={statusMessage} tone={statusMessage.includes('못') ? 'error' : 'success'} />
         ) : null}
 
-        <Text style={styles.sectionTitle}>오늘 일정</Text>
+        <Text style={styles.sectionTitle}>등록한 일정</Text>
         <DayScheduleSection places={places} onRemovePlace={removePlace} />
       </ScrollView>
       <BottomNavBar active="Schedule" navigation={navigation} />
@@ -232,7 +245,7 @@ const styles = StyleSheet.create({
   inputTitle: {
     color: COLORS.ink,
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '700',
     marginBottom: 10,
   },
   inputRow: {
@@ -262,7 +275,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: COLORS.ink,
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '700',
     marginTop: 20,
     marginBottom: 12,
   },

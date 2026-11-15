@@ -1,31 +1,78 @@
-import { useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { getApiErrorMessage, getMyAllergies, saveMyAllergies } from '../api';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppHeader } from '../components/common/AppHeader';
 import { EmptyState } from '../components/common/EmptyState';
 import { SearchField } from '../components/common/SearchField';
 import { AllergyFilterGrid } from '../components/food/AllergyFilterGrid';
 import { FoodCard } from '../components/food/FoodCard';
-import { foodAllergies } from '../data/food';
+import { dietFilters, foodAllergies, passesDietFilters } from '../data/food';
 import { useSafeFoods } from '../hooks/useSafeFoods';
 import type { RootStackParamList } from '../routes';
 import { COLORS } from '../theme';
+import { ensureLoggedIn, isLoggedIn } from '../utils/requireLogin';
+import { buildAllergyCard } from '../utils/cards';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Food'>;
 
 export default function FoodScreenAllergy({ navigation }: Props) {
   const [query, setQuery] = useState('');
   const [selectedAllergies, setSelectedAllergies] = useState<string[]>([]);
+  const [selectedDiets, setSelectedDiets] = useState<string[]>([]);
+  const [foodType, setFoodType] = useState('전체');
   const { foods, statusMessage, isLoading } = useSafeFoods(selectedAllergies);
+  const [allergyMessage, setAllergyMessage] = useState('');
+  const [isSavingAllergies, setIsSavingAllergies] = useState(false);
+
+  // 회원이면 저장해 둔 내 알러지를 필터로 불러옴 (비회원은 매번 직접 선택)
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      if (!(await isLoggedIn())) return;
+      try {
+        const { allergies } = await getMyAllergies();
+        if (active && allergies.length > 0) {
+          setSelectedAllergies(allergies);
+          setAllergyMessage('저장한 내 알러지를 불러왔어요');
+        }
+      } catch {
+        // 불러오기 실패해도 직접 선택해서 쓸 수 있음
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const saveAllergies = async () => {
+    if (isSavingAllergies || !(await ensureLoggedIn(navigation))) return;
+    setIsSavingAllergies(true);
+    try {
+      await saveMyAllergies(selectedAllergies);
+      setAllergyMessage(selectedAllergies.length > 0 ? '내 알러지로 저장했어요' : '저장한 알러지를 비웠어요');
+    } catch (error) {
+      setAllergyMessage(getApiErrorMessage(error));
+    } finally {
+      setIsSavingAllergies(false);
+    }
+  };
+
+  // 음식 종류 칩: 지금 결과에 있는 종류만
+  const foodTypes = useMemo(() => ['전체', ...Array.from(new Set(foods.map((f) => f.category))).sort()], [foods]);
 
   const filteredFoods = useMemo(() => {
     const term = query.trim().toLowerCase();
-    if (!term) return foods;
+    return foods.filter((food) => {
+      const ingredients = food.note.split(',').map((x) => x.trim());
+      if (!passesDietFilters(ingredients, selectedDiets)) return false;
+      if (foodType !== '전체' && food.category !== foodType) return false;
+      return !term || `${food.name} ${food.category} ${food.tags.join(' ')} ${food.note}`.toLowerCase().includes(term);
+    });
+  }, [foods, query, selectedDiets, foodType]);
 
-    return foods.filter((food) =>
-      `${food.name} ${food.category} ${food.tags.join(' ')} ${food.note}`.toLowerCase().includes(term)
-    );
-  }, [foods, query]);
+  const toggleDiet = (id: string) =>
+    setSelectedDiets((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
 
   const toggleAllergy = (allergy: string) => {
     setSelectedAllergies((items) =>
@@ -33,8 +80,9 @@ export default function FoodScreenAllergy({ navigation }: Props) {
     );
   };
 
+  const dietLabels = dietFilters.filter((f) => selectedDiets.includes(f.id)).map((f) => f.label);
   const allergySummary =
-    selectedAllergies.length > 0 ? `제외: ${selectedAllergies.join(' · ')}` : '제외 성분 없음';
+    [...(selectedAllergies.length > 0 ? [`제외: ${selectedAllergies.join(' · ')}`] : []), ...dietLabels].join(' · ') || '제외 성분 없음';
 
   return (
     <View style={styles.screen}>
@@ -47,6 +95,59 @@ export default function FoodScreenAllergy({ navigation }: Props) {
           selectedAllergies={selectedAllergies}
           onToggle={toggleAllergy}
         />
+        <View style={styles.saveRow}>
+          <Pressable
+            style={[styles.saveButton, isSavingAllergies ? styles.saveButtonDisabled : null]}
+            onPress={saveAllergies}
+            disabled={isSavingAllergies}
+            accessibilityRole="button"
+          >
+            <Text style={styles.saveButtonText}>내 알러지로 저장</Text>
+          </Pressable>
+          {selectedAllergies.length > 0 ? (
+            <Pressable
+              style={[styles.saveButton, styles.cardButton]}
+              onPress={() => navigation.navigate('ShowCard', buildAllergyCard(selectedAllergies))}
+              accessibilityRole="button"
+            >
+              <Text style={styles.saveButtonText}>알러지 카드</Text>
+            </Pressable>
+          ) : null}
+          {allergyMessage ? <Text style={styles.saveMessage}>{allergyMessage}</Text> : null}
+        </View>
+        <Text style={styles.filterTitle}>식단 · 취향</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
+          {dietFilters.map((f) => {
+            const on = selectedDiets.includes(f.id);
+            return (
+              <Pressable
+                key={f.id}
+                style={[styles.chip, on ? styles.chipOn : null]}
+                onPress={() => toggleDiet(f.id)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: on }}
+              >
+                <Text style={[styles.chipText, on ? styles.chipTextOn : null]}>{f.label}</Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
+          {foodTypes.map((t) => {
+            const on = t === foodType;
+            return (
+              <Pressable
+                key={t}
+                style={[styles.typeChip, on ? styles.typeChipOn : null]}
+                onPress={() => setFoodType(t)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: on }}
+              >
+                <Text style={[styles.typeChipText, on ? styles.chipTextOn : null]}>{t}</Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
         <View style={styles.resultSummary}>
           <Text style={styles.resultCount}>추천 음식 {filteredFoods.length}개</Text>
           <Text style={styles.resultCondition}>{allergySummary}</Text>
@@ -58,6 +159,7 @@ export default function FoodScreenAllergy({ navigation }: Props) {
           </View>
         ) : null}
         {statusMessage ? <Text style={styles.errorText}>{statusMessage}</Text> : null}
+        <Text style={styles.disclaimer}>대표 레시피 기준 참고 정보예요. 식당마다 재료가 다를 수 있으니 알러지 카드로 꼭 확인하세요.</Text>
       </View>
 
       <FlatList
@@ -90,10 +192,49 @@ const styles = StyleSheet.create({
   filterTitle: {
     color: COLORS.ink,
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '700',
     marginTop: 16,
     marginBottom: 10,
   },
+  saveRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  saveButton: {
+    minHeight: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: COLORS.teal,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+  },
+  cardButton: {
+    marginLeft: 8,
+  },
+  saveButtonDisabled: {
+    opacity: 0.5,
+  },
+  saveButtonText: {
+    color: COLORS.teal,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  saveMessage: {
+    flexShrink: 1,
+    color: COLORS.muted,
+    fontSize: 12,
+    fontWeight: '700',
+    marginLeft: 10,
+  },
+  chipRow: { flexGrow: 0, marginBottom: 6 },
+  chip: { borderRadius: 16, borderWidth: 1, borderColor: COLORS.line, backgroundColor: COLORS.white, paddingHorizontal: 12, paddingVertical: 7, marginRight: 6 },
+  chipOn: { backgroundColor: COLORS.teal, borderColor: COLORS.teal },
+  chipText: { color: COLORS.ink, fontSize: 13, fontWeight: '700' },
+  chipTextOn: { color: COLORS.white },
+  typeChip: { borderRadius: 14, backgroundColor: COLORS.white, paddingHorizontal: 11, paddingVertical: 6, marginRight: 6 },
+  typeChipOn: { backgroundColor: COLORS.ink },
+  typeChipText: { color: COLORS.text, fontSize: 12, fontWeight: '700' },
   resultSummary: {
     minHeight: 48,
     borderRadius: 16,
@@ -105,7 +246,7 @@ const styles = StyleSheet.create({
   resultCount: {
     color: COLORS.ink,
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   resultCondition: {
     color: COLORS.muted,
@@ -128,6 +269,12 @@ const styles = StyleSheet.create({
     color: COLORS.red,
     fontSize: 12,
     lineHeight: 18,
+    marginTop: 8,
+  },
+  disclaimer: {
+    color: COLORS.muted,
+    fontSize: 11,
+    lineHeight: 16,
     marginTop: 8,
   },
   list: {

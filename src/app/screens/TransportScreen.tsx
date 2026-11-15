@@ -17,7 +17,6 @@ import {
 } from '../api';
 import { AppHeader } from '../components/common/AppHeader';
 import { ToastMessage } from '../components/common/ToastMessage';
-import { AuthNotice } from '../components/transport/AuthNotice';
 import { CandidateSection } from '../components/transport/CandidateSection';
 import { ChatMessageList } from '../components/transport/ChatMessageList';
 import { RecentRoutePanel } from '../components/transport/RecentRoutePanel';
@@ -40,6 +39,9 @@ import {
 import type { RootStackParamList } from '../routes';
 import { COLORS } from '../theme';
 import { getFallbackTodayKey } from '../utils/date';
+import { useFocusEffect } from '@react-navigation/native';
+import { ensureLoggedIn } from '../utils/requireLogin';
+import { buildTaxiCard } from '../utils/cards';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Transport'>;
 
@@ -47,10 +49,13 @@ function buildTransportScheduleTitle(departure: PlaceCandidate, destination: Pla
   return `${departure.name} → ${destination.name}`;
 }
 
-export default function TransportScreen({ navigation }: Props) {
+export default function TransportScreen({ navigation, route }: Props) {
   const chat = useTransportChat();
   const scrollRef = useRef<ScrollView | null>(null);
   const lastSavedRouteRef = useRef('');
+  const initialMessage = route.params?.initialMessage;
+  const initialDestination = route.params?.destination;
+  const sentInitialRef = useRef(false);
   const [recentRoutes, setRecentRoutes] = useState<TransportRouteHistoryItem[]>([]);
   const [isSavingSchedule, setIsSavingSchedule] = useState(false);
   const [routeStatusMessage, setRouteStatusMessage] = useState('');
@@ -71,9 +76,19 @@ export default function TransportScreen({ navigation }: Props) {
     setTimeout(() => scrollToBottom(), 250);
   }, [scrollToBottom]);
 
+  useFocusEffect(
+    useCallback(() => {
+      void loadRecentRoutes();
+    }, [loadRecentRoutes])
+  );
+
+
+  // 행사 상세의 "길찾기"로 들어오면 그 질문을 바로 한 번 보냄
   useEffect(() => {
-    void loadRecentRoutes();
-  }, [loadRecentRoutes]);
+    if (!initialMessage || sentInitialRef.current) return;
+    sentInitialRef.current = true;
+    void chat.sendMessage(initialMessage, initialDestination);
+  }, [initialMessage, initialDestination, chat.sendMessage]);
 
   useEffect(() => {
     scrollToBottom();
@@ -106,7 +121,9 @@ export default function TransportScreen({ navigation }: Props) {
       chat.selectedDeparture,
       chat.selectedDestination,
       chat.selectedRoute
-    ).then(setRecentRoutes);
+    )
+      .then(setRecentRoutes)
+      .catch(() => undefined); // 기록 저장 실패는 경로 사용을 막지 않음
   }, [chat.requestId, chat.selectedDeparture, chat.selectedDestination, chat.selectedRoute]);
 
   const chooseCandidate = (kind: CandidateKind) => (candidate: PlaceCandidate) => {
@@ -120,13 +137,18 @@ export default function TransportScreen({ navigation }: Props) {
   };
 
   const clearRecentRoutes = async () => {
-    await clearRecentTransportRoutes();
-    setRecentRoutes([]);
-    setRouteStatusMessage('최근 경로를 비웠어요');
+    try {
+      await clearRecentTransportRoutes();
+      setRecentRoutes([]);
+      setRouteStatusMessage('최근 경로를 비웠어요');
+    } catch (error) {
+      setRouteStatusMessage(getApiErrorMessage(error));
+    }
   };
 
   const saveSelectedRouteToSchedule = async () => {
     if (!chat.selectedRoute || !chat.selectedDeparture || !chat.selectedDestination || isSavingSchedule) return;
+    if (!(await ensureLoggedIn(navigation))) return;
 
     setIsSavingSchedule(true);
     setRouteStatusMessage('');
@@ -157,7 +179,7 @@ export default function TransportScreen({ navigation }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={0}
     >
-      <AppHeader title="교통 경로" onBack={() => navigation.goBack()} />
+      <AppHeader title="길찾기" onBack={() => navigation.goBack()} />
       <ScrollView
         ref={scrollRef}
         showsVerticalScrollIndicator={false}
@@ -171,11 +193,8 @@ export default function TransportScreen({ navigation }: Props) {
           onSelect={restoreRecentRoute}
           onClear={clearRecentRoutes}
         />
-        <SuggestionList suggestions={transportSuggestions} onSelect={(item) => chat.sendMessage(item)} />
+        <SuggestionList suggestions={transportSuggestions} onSelect={(item) => void chat.sendMessage(item)} />
 
-        {chat.isAuthReady && !chat.isAuthorized ? (
-          <AuthNotice onLogin={() => navigation.replace('Login')} />
-        ) : null}
 
         <ChatMessageList messages={chat.messages} />
 
@@ -218,6 +237,11 @@ export default function TransportScreen({ navigation }: Props) {
           destination={chat.selectedDestination}
           isSavingSchedule={isSavingSchedule}
           onSaveToSchedule={saveSelectedRouteToSchedule}
+          onShowTaxiCard={
+            chat.selectedDestination
+              ? () => navigation.navigate('ShowCard', buildTaxiCard(chat.selectedDestination!.name, chat.selectedDestination!.address))
+              : undefined
+          }
         />
 
         {routeStatusMessage ? <ToastMessage message={routeStatusMessage} /> : null}
@@ -228,7 +252,7 @@ export default function TransportScreen({ navigation }: Props) {
         isLoading={chat.isInitialLoading}
         onChangeMessage={chat.setMessage}
         onFocus={scrollToBottomAfterKeyboard}
-        onSend={() => chat.sendMessage()}
+        onSend={() => void chat.sendMessage()}
       />
     </KeyboardAvoidingView>
   );

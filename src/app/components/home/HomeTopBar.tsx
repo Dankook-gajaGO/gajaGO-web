@@ -1,39 +1,33 @@
-import Feather from '@expo/vector-icons/Feather';
 import { StyleSheet, Text, View } from 'react-native';
 import { COLORS } from '../../theme';
 
+// 알림 종 아이콘은 눌러도 아무 기능이 없어서 뺐어요 (알림은 일정 등록 때 선택)
 export function HomeTopBar() {
   return (
     <View style={styles.topBar}>
-      <Text style={styles.logo}>가자고</Text>
-      <View style={styles.notificationButton}>
-        <Feather name="bell" size={18} color={COLORS.text} />
-      </View>
+      <Text style={styles.logo}>가자GO</Text>
+      <Text style={styles.tagline}>한국 여행 도우미</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   topBar: {
-    minHeight: 58,
+    minHeight: 56,
     paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.line,
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    paddingTop: 16,
   },
   logo: {
     color: COLORS.teal,
-    fontSize: 20,
-    fontWeight: '900',
+    fontSize: 22,
+    fontWeight: '800',
   },
-  notificationButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: COLORS.card,
-    alignItems: 'center',
-    justifyContent: 'center',
+  tagline: {
+    color: COLORS.muted,
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 8,
   },
 });

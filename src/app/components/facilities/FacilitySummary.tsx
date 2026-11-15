@@ -33,7 +33,7 @@ const styles = StyleSheet.create({
   summaryTitle: {
     color: COLORS.ink,
     fontSize: 17,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   summaryText: {
     color: COLORS.muted,

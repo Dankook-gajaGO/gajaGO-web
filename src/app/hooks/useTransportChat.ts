@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
+import * as Location from 'expo-location';
 import {
   ApiError,
   createTransportInitialRequest,
   getApiErrorMessage,
-  getAuthToken,
   getTransportRoutes,
-  hydrateAuthToken,
   type PlaceCandidate,
   type TransportRoute,
 } from '../api';
@@ -19,9 +18,9 @@ import type { TransportRouteHistoryItem } from '../data/transportHistory';
 
 export type CandidateKind = 'departure' | 'destination';
 
-const authRequiredMessage = '교통 챗봇은 로그인이 필요합니다. 로그인 후 다시 시도해주세요.';
 
 export const transportSuggestions = [
+  '여기서 경복궁까지 어떻게 가?',
   '서울역에서 경복궁까지 다리를 다쳤는데 어떻게 가?',
   '단국대학교에서 서울역 가려면 짐이 많은데 어떻게 가?',
   '공항에서 명동까지 환승 적은 경로 알려줘',
@@ -34,6 +33,20 @@ export const initialTransportMessages: TransportChatMessage[] = [
     text: '이동 상황을 알려주시면 출발지와 목적지 후보를 찾은 뒤 경로를 추천해드릴게요.',
   },
 ];
+
+// "경복궁 가고 싶어"처럼 출발지가 없을 때 쓸 현재 위치. 권한이 없거나 실패하면 null (출발지를 직접 말하면 됨)
+async function getCurrentCoords() {
+  try {
+    const permission = await Location.requestForegroundPermissionsAsync();
+    if (permission.status !== Location.PermissionStatus.GRANTED) return null;
+    const position =
+      (await Location.getLastKnownPositionAsync({ maxAge: 5 * 60_000 })) ??
+      (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }));
+    return { lat: position.coords.latitude, lng: position.coords.longitude };
+  } catch {
+    return null;
+  }
+}
 
 export function useTransportChat() {
   const latestSession = getLatestTransportSession();
@@ -61,24 +74,8 @@ export function useTransportChat() {
   const [isInitialLoading, setIsInitialLoading] = useState(false);
   const [isRoutesLoading, setIsRoutesLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [isAuthReady, setIsAuthReady] = useState(() => Boolean(getAuthToken()));
-  const [isAuthorized, setIsAuthorized] = useState(() => Boolean(getAuthToken()));
 
   const selectedRoute = routes.find((route) => route.id === selectedRouteId) ?? null;
-
-  useEffect(() => {
-    let mounted = true;
-
-    void hydrateAuthToken().then((token) => {
-      if (!mounted) return;
-      setIsAuthorized(Boolean(token));
-      setIsAuthReady(true);
-    });
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   useEffect(() => {
     const hasSessionData =
@@ -118,31 +115,12 @@ export function useTransportChat() {
     ]);
   };
 
-  const requireAuthToken = async (showChatMessage = false) => {
-    const token = getAuthToken() ?? (await hydrateAuthToken());
-    const authorized = Boolean(token);
-    setIsAuthReady(true);
-    setIsAuthorized(authorized);
-
-    if (!authorized) {
-      setErrorMessage(authRequiredMessage);
-      if (showChatMessage) addAssistantMessage(authRequiredMessage);
-    }
-
-    return authorized;
-  };
-
+  // 길찾기는 비회원도 사용. 기록 저장(최근 경로·일정)만 회원 전용
   const handleTransportError = (error: unknown) => {
-    if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
-      const authMessage = '로그인 인증이 만료되었거나 누락되었습니다. 다시 로그인해주세요.';
-      setIsAuthorized(false);
-      setErrorMessage(authMessage);
-      addAssistantMessage(authMessage);
-      return;
-    }
-
-    setErrorMessage(getApiErrorMessage(error));
-    addAssistantMessage('교통 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+    // 서버가 알려준 이유(예: "출발지를 함께 알려주세요")를 챗봇 답변으로 그대로 보여줌
+    const reason = getApiErrorMessage(error);
+    setErrorMessage(reason);
+    addAssistantMessage(reason);
   };
 
   const loadRoutes = async (
@@ -150,7 +128,6 @@ export function useTransportChat() {
     nextDeparture: PlaceCandidate,
     nextDestination: PlaceCandidate
   ) => {
-    if (!(await requireAuthToken())) return;
 
     setIsRoutesLoading(true);
     setErrorMessage('');
@@ -185,11 +162,10 @@ export function useTransportChat() {
     }
   };
 
-  const sendMessage = async (text = message) => {
+  const sendMessage = async (text = message, destination?: PlaceCandidate) => {
     const trimmed = text.trim();
     if (trimmed.length === 0 || isInitialLoading) return;
 
-    if (!(await requireAuthToken(true))) return;
 
     setMessage('');
     setErrorMessage('');
@@ -204,7 +180,7 @@ export function useTransportChat() {
     setIsInitialLoading(true);
 
     try {
-      const response = await createTransportInitialRequest(trimmed);
+      const response = await createTransportInitialRequest(trimmed, await getCurrentCoords(), destination);
       setRequestId(response.requestId);
       setDepartureCandidates(response.departureCandidates);
       setDestinationCandidates(response.destinationCandidates);
@@ -282,8 +258,6 @@ export function useTransportChat() {
     isInitialLoading,
     isRoutesLoading,
     errorMessage,
-    isAuthReady,
-    isAuthorized,
     chooseCandidate,
     sendMessage,
     resetSession,

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Feather from '@expo/vector-icons/Feather';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { LOGIN_REQUIRED_MESSAGE, ensureLoggedIn, isLoggedIn, useLoginPromptOnFocus } from '../utils/requireLogin';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -21,6 +22,9 @@ import { holidays, type Memo } from '../data/calendar';
 import type { RootStackParamList } from '../routes';
 import { COLORS } from '../theme';
 import { getFallbackTodayKey, getMonthStartDate } from '../utils/date';
+import { ExpenseDayCard } from '../components/expense/ExpenseDayCard';
+import { ReminderPicker } from '../components/common/ReminderPicker';
+import { scheduleItemReminder, type ReminderOption } from '../utils/notifications';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CalendarDetail'>;
 
@@ -39,6 +43,7 @@ function toCalendarMemo(item: ScheduleItemApi): Memo {
 }
 
 export default function CalendarDetailScreen({ navigation, route }: Props) {
+  useLoginPromptOnFocus(navigation);
   const routeDate = route.params?.date;
   const fallbackToday = getFallbackTodayKey();
   const initialDate = routeDate ?? fallbackToday;
@@ -47,6 +52,7 @@ export default function CalendarDetailScreen({ navigation, route }: Props) {
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [scheduleItems, setScheduleItems] = useState<ScheduleItemApi[]>([]);
   const [draft, setDraft] = useState('');
+  const [reminder, setReminder] = useState<ReminderOption>('none');
   const [isResolvingDate, setIsResolvingDate] = useState(!routeDate);
   const [isLoadingItems, setIsLoadingItems] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
@@ -85,8 +91,12 @@ export default function CalendarDetailScreen({ navigation, route }: Props) {
   }, [routeDate]);
 
   const loadMonthlyItems = useCallback(async () => {
-    setIsLoadingItems(true);
     setStatusMessage('');
+    if (!(await isLoggedIn())) {
+      setStatusMessage(LOGIN_REQUIRED_MESSAGE);
+      return;
+    }
+    setIsLoadingItems(true);
 
     try {
       const response = await getMonthlyScheduleItems(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1);
@@ -114,7 +124,7 @@ export default function CalendarDetailScreen({ navigation, route }: Props) {
 
   const addMemo = async () => {
     const title = draft.trim();
-    if (!title) return;
+    if (!title || !(await ensureLoggedIn(navigation))) return;
 
     setStatusMessage('');
 
@@ -126,6 +136,8 @@ export default function CalendarDetailScreen({ navigation, route }: Props) {
       });
       setScheduleItems((items) => [...items, created]);
       setDraft('');
+      void scheduleItemReminder({ itemId: created.itemId, title, date: selectedDate }, reminder);
+      setReminder('none');
       setStatusMessage('메모를 추가했어요');
     } catch (error) {
       setStatusMessage(getApiErrorMessage(error));
@@ -179,7 +191,9 @@ export default function CalendarDetailScreen({ navigation, route }: Props) {
           <ToastMessage message={statusMessage} tone={statusMessage.includes('못') ? 'error' : 'success'} />
         ) : null}
 
+        <ExpenseDayCard date={selectedDate} onPress={() => navigation.navigate('Expense')} style={styles.expenseCard} />
         <SelectedDatePanel
+          inputFooter={<ReminderPicker value={reminder} onChange={setReminder} />}
           selectedDate={selectedDate}
           memos={selectedMemos}
           draft={draft}
@@ -217,6 +231,10 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 28,
   },
+  expenseCard: {
+    marginTop: 0,
+    marginBottom: 12,
+  },
   monthHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -237,7 +255,7 @@ const styles = StyleSheet.create({
   monthText: {
     color: COLORS.ink,
     fontSize: 20,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   syncRow: {
     flexDirection: 'row',
@@ -273,7 +291,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: COLORS.ink,
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '700',
     marginTop: 20,
     marginBottom: 10,
   },

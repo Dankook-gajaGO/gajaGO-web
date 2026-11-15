@@ -8,6 +8,7 @@ import { AppHeader } from '../components/common/AppHeader';
 import { BottomNavBar } from '../components/BottomNavBar';
 import type { RootStackParamList } from '../routes';
 import { COLORS, radius } from '../theme';
+import { useLoginPromptOnFocus } from '../utils/requireLogin';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MyPage'>;
 type FeatherName = ComponentProps<typeof Feather>['name'];
@@ -16,18 +17,24 @@ const rows: Array<{
   label: string;
   caption: string;
   icon: FeatherName;
-  action: 'saved' | 'logout';
+  action: 'saved' | 'expense' | 'logout';
   danger?: boolean;
 }> = [
   {
     label: '저장한 행사',
-    caption: '관심 있는 행사를 확인하고 캘린더에 추가합니다.',
+    caption: '찜한 행사 모아보기',
     icon: 'heart',
     action: 'saved',
   },
   {
+    label: '여행 가계부',
+    caption: '경비 기록·환율·N빵',
+    icon: 'credit-card',
+    action: 'expense',
+  },
+  {
     label: '로그아웃',
-    caption: '로그인 화면으로 돌아갑니다.',
+    caption: '비회원으로 계속 둘러보기',
     icon: 'log-out',
     action: 'logout',
     danger: true,
@@ -35,14 +42,19 @@ const rows: Array<{
 ];
 
 export default function MyPageScreen({ navigation }: Props) {
-  const handleRow = async (action: 'saved' | 'logout') => {
+  useLoginPromptOnFocus(navigation);
+  const handleRow = async (action: 'saved' | 'expense' | 'logout') => {
     if (action === 'saved') {
       navigation.navigate('SavedEvents');
       return;
     }
+    if (action === 'expense') {
+      navigation.navigate('Expense');
+      return;
+    }
 
     await setAuthToken(null);
-    navigation.replace('Login');
+    navigation.navigate('Home');
   };
 
   return (
@@ -55,7 +67,7 @@ export default function MyPageScreen({ navigation }: Props) {
           </View>
           <View style={styles.profileText}>
             <Text style={styles.name}>내 계정</Text>
-            <Text style={styles.email}>여행 기록과 저장 항목을 확인합니다</Text>
+            <Text style={styles.email}>저장한 행사와 가계부를 관리해요</Text>
           </View>
         </View>
 
@@ -99,7 +111,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#E5F7F7',
+    backgroundColor: COLORS.tealSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
@@ -110,7 +122,7 @@ const styles = StyleSheet.create({
   name: {
     color: COLORS.ink,
     fontSize: 19,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   email: {
     color: COLORS.muted,
@@ -137,7 +149,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: radius.md,
-    backgroundColor: '#E5F7F7',
+    backgroundColor: COLORS.tealSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -151,7 +163,7 @@ const styles = StyleSheet.create({
   rowLabel: {
     color: COLORS.ink,
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   dangerText: {
     color: COLORS.red,

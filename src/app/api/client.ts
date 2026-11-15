@@ -1,16 +1,17 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 declare const process: {
-  env?: {
+  env: {
     EXPO_PUBLIC_API_BASE_URL?: string;
   };
 };
 
 const DEFAULT_API_BASE_URL = 'http://10.0.2.2:8080';
 const AUTH_TOKEN_STORAGE_KEY = 'gajago.authToken';
+const REQUEST_TIMEOUT_MS = 30_000;
 
-const envApiBaseUrl =
-  typeof process === 'undefined' ? undefined : process.env?.EXPO_PUBLIC_API_BASE_URL;
+// Expo는 빌드 때 `process.env.EXPO_PUBLIC_X` 형태 그대로만 값으로 바꿔 넣음 (?. 쓰면 APK에 주소가 안 들어감)
+const envApiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
 
 export const API_BASE_URL = envApiBaseUrl?.replace(/\/$/, '') ?? DEFAULT_API_BASE_URL;
 
@@ -105,7 +106,8 @@ export class ApiError extends Error {
 
 type ApiRequestOptions = Omit<RequestInit, 'body'> & {
   body?: unknown;
-  auth?: boolean;
+  // true(기본): 로그인 필수, false: 토큰 안 보냄, 'optional': 로그인했으면 토큰을 보내고 아니면 비회원으로
+  auth?: boolean | 'optional';
 };
 
 function buildUrl(path: string) {
@@ -149,7 +151,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
 
   const token = options.auth === false ? null : authToken ?? (await hydrateAuthToken());
 
-  if (options.auth !== false && !token) {
+  if (options.auth !== false && options.auth !== 'optional' && !token) {
     throw new ApiError(401, '로그인 인증이 필요합니다. 다시 로그인해주세요.', null);
   }
 
@@ -157,16 +159,30 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(buildUrl(path), {
-    ...options,
-    headers,
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
-  });
+  // 서버가 응답하지 않으면 무한 대기 대신 30초 뒤 실패 (챗봇은 Gemini+TMAP 호출로 느릴 수 있음)
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  let response: Response;
+  try {
+    response = await fetch(buildUrl(path), {
+      ...options,
+      headers,
+      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      signal: controller.signal,
+    });
+  } catch {
+    throw new ApiError(0, '서버에 연결할 수 없습니다. 인터넷 연결을 확인하고 잠시 후 다시 시도해주세요.', null);
+  } finally {
+    clearTimeout(timer);
+  }
 
   const text = await response.text();
   const parsed = parseBody(text);
 
   if (!response.ok) {
+    // 보낸 토큰이 거절됨 = 만료(7일). 지워야 다음 저장 때 로그인 화면이 뜸
+    if (token && (response.status === 401 || response.status === 403)) await setAuthToken(null);
     throw new ApiError(response.status, getErrorMessage(response.status, response.statusText, parsed), parsed);
   }
 

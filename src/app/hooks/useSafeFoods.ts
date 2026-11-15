@@ -1,18 +1,13 @@
 import { useEffect, useState } from 'react';
 import {
-  ApiError,
   getApiErrorMessage,
   getSafeFoodList,
-  hydrateAuthToken,
   normalizeSafeFoodResponse,
   type FoodRecommendation,
 } from '../api';
 
+// 음식 알러지 필터는 비회원도 사용 (로그인 불필요)
 function getFoodStatusMessage(error: unknown) {
-  if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
-    return '로그인 인증이 없거나 만료되어 음식 데이터를 불러오지 못했습니다. 다시 로그인해주세요.';
-  }
-
   return `음식 목록을 불러오지 못했습니다. ${getApiErrorMessage(error)}`;
 }
 
@@ -27,16 +22,6 @@ export function useSafeFoods(selectedAllergies: string[]) {
     async function loadFoods() {
       setIsLoading(true);
       setStatusMessage('');
-
-      const token = await hydrateAuthToken();
-      if (!active) return;
-
-      if (!token) {
-        setFoods([]);
-        setStatusMessage('로그인해야 음식 정보를 확인할 수 있습니다.');
-        setIsLoading(false);
-        return;
-      }
 
       try {
         const response = await getSafeFoodList(selectedAllergies);

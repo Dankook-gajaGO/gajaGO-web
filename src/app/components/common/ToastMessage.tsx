@@ -11,7 +11,7 @@ const toneConfig = {
   success: {
     icon: 'check-circle',
     color: COLORS.teal,
-    backgroundColor: '#E5F7F7',
+    backgroundColor: COLORS.tealSoft,
   },
   error: {
     icon: 'alert-circle',
@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
   text: {
     flex: 1,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     lineHeight: 17,
     marginLeft: 8,
   },

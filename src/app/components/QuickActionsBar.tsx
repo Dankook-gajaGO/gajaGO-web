@@ -1,6 +1,6 @@
 import Feather from '@expo/vector-icons/Feather';
 import type { ComponentProps } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { COLORS, radius } from '../theme';
 
 type FeatherName = ComponentProps<typeof Feather>['name'];
@@ -16,10 +16,10 @@ export interface QuickAction {
 export function makeQuickActions(): QuickAction[] {
   return [
     { id: 'facilities', label: '편의시설', icon: 'map', color: COLORS.blue, bg: '#EFF5FF' },
-    { id: 'transport', label: '교통 경로', icon: 'navigation', color: COLORS.purple, bg: '#F4F0FF' },
+    { id: 'transport', label: '길찾기', icon: 'navigation', color: COLORS.purple, bg: '#F4F0FF' },
     { id: 'food', label: '음식', icon: 'coffee', color: COLORS.orange, bg: '#FFF5E6' },
-    { id: 'payment', label: '결제 정보', icon: 'credit-card', color: COLORS.teal, bg: '#E5F7F7' },
-    { id: 'emergency', label: '긴급 상황', icon: 'alert-triangle', color: COLORS.red, bg: '#FFF0F0' },
+    { id: 'payment', label: '결제', icon: 'credit-card', color: COLORS.teal, bg: COLORS.tealSoft },
+    { id: 'emergency', label: '긴급', icon: 'alert-triangle', color: COLORS.red, bg: '#FFF0F0' },
   ];
 }
 
@@ -29,24 +29,29 @@ interface QuickActionsBarProps {
   title?: string;
 }
 
+// 5개가 한 줄에 다 보이게 (가로 스크롤에선 5번째가 잘려 보였음)
 export function QuickActionsBar({ actions, onSelect, title = '빠른 기능' }: QuickActionsBarProps) {
   return (
     <View>
       <Text style={styles.title}>{title}</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.list}>
+      <View style={styles.grid}>
         {actions.map((action) => (
           <Pressable
             key={action.id}
-            style={[styles.card, { backgroundColor: action.bg, borderColor: `${action.color}30` }]}
+            style={({ pressed }) => [styles.item, pressed ? styles.pressed : null]}
             onPress={() => onSelect(action)}
+            accessibilityRole="button"
+            accessibilityLabel={action.label}
           >
-            <View style={[styles.iconWrap, { backgroundColor: action.color }]}>
-              <Feather name={action.icon} size={21} color={COLORS.white} />
+            <View style={[styles.iconWrap, { backgroundColor: action.bg }]}>
+              <Feather name={action.icon} size={22} color={action.color} />
             </View>
-            <Text style={styles.label}>{action.label}</Text>
+            <Text style={styles.label} numberOfLines={1}>
+              {action.label}
+            </Text>
           </Pressable>
         ))}
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -54,36 +59,34 @@ export function QuickActionsBar({ actions, onSelect, title = '빠른 기능' }: 
 const styles = StyleSheet.create({
   title: {
     color: COLORS.ink,
-    fontSize: 17,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '700',
     marginHorizontal: 20,
-    marginBottom: 12,
+    marginBottom: 14,
   },
-  list: {
-    paddingHorizontal: 20,
+  grid: {
+    flexDirection: 'row',
+    paddingHorizontal: 12,
   },
-  card: {
-    width: 96,
-    minHeight: 104,
-    borderRadius: radius.lg,
-    borderWidth: 1,
+  item: {
+    flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: 12,
-    marginRight: 10,
+    paddingVertical: 4,
+  },
+  pressed: {
+    opacity: 0.6,
   },
   iconWrap: {
-    width: 46,
-    height: 46,
-    borderRadius: radius.md,
+    width: 52,
+    height: 52,
+    borderRadius: radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   label: {
-    color: COLORS.ink,
-    fontSize: 12,
-    fontWeight: '800',
-    textAlign: 'center',
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

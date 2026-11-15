@@ -19,6 +19,8 @@ import { festivalDetailToEvent, type FestivalEventItem } from '../data/festivalE
 import type { RootStackParamList } from '../routes';
 import { COLORS, radius } from '../theme';
 import { getFallbackTodayKey } from '../utils/date';
+import { ensureLoggedIn } from '../utils/requireLogin';
+import { openGooglePlace, openKakaoPlace } from '../utils/maps';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EventDetails'>;
 
@@ -106,8 +108,20 @@ export default function EventDetailScreen({ navigation, route }: Props) {
     if (homepageUrl) void Linking.openURL(homepageUrl);
   };
 
+  // 출발지는 말하지 않음 -> 챗봇이 현재 위치에서 출발. 행사 좌표가 있으면 장소 검색 없이 그 좌표로 안내 (비회원도 사용)
+  const openDirections = () => {
+    if (!event) return;
+    const lat = detail?.lat;
+    const lng = detail?.lng;
+    navigation.navigate('Transport', {
+      country,
+      initialMessage: `${event.title}까지 어떻게 가?`,
+      destination: lat != null && lng != null ? { name: event.title, address: event.location, lat, lng } : undefined,
+    });
+  };
+
   const toggleSaved = async () => {
-    if (!event || isSaving) return;
+    if (!event || isSaving || !(await ensureLoggedIn(navigation))) return;
 
     setIsSaving(true);
     setStatusMessage('');
@@ -130,7 +144,7 @@ export default function EventDetailScreen({ navigation, route }: Props) {
   };
 
   const addToCalendar = async () => {
-    if (!event || isAddingSchedule) return;
+    if (!event || isAddingSchedule || !(await ensureLoggedIn(navigation))) return;
 
     const date = getEventScheduleDate(event);
     setIsAddingSchedule(true);
@@ -176,9 +190,7 @@ export default function EventDetailScreen({ navigation, route }: Props) {
           <>
             <Image source={{ uri: event.image }} style={styles.heroImage} />
             <View style={styles.titleBlock}>
-              <View style={[styles.tag, { backgroundColor: event.tagColor }]}>
-                <Text style={styles.tagText}>{event.tag}</Text>
-              </View>
+              <Text style={[styles.tagText, { color: event.tagColor }]}>{event.tag}</Text>
               <Text style={styles.title}>{event.title}</Text>
               <Text style={styles.subtitle}>{event.subtitle}</Text>
             </View>
@@ -190,36 +202,42 @@ export default function EventDetailScreen({ navigation, route }: Props) {
               <InfoRow icon="phone" label="문의" value={detail?.tel || '정보 없음'} />
             </View>
 
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>소개</Text>
-              <Text style={styles.description}>{detail?.overview || '상세 소개 정보가 없습니다.'}</Text>
-            </View>
+            {detail?.lat != null && detail?.lng != null ? (
+              <View style={styles.mapRow}>
+                <Text style={styles.mapLabel}>지도에서 보기</Text>
+                {(
+                  [
+                    ['구글 지도', openGooglePlace],
+                    ['카카오맵', openKakaoPlace],
+                  ] as const
+                ).map(([label, open]) => (
+                  <Pressable
+                    key={label}
+                    style={styles.mapChip}
+                    onPress={() =>
+                      void open({ name: event.title, address: event.location, lat: detail.lat as number, lng: detail.lng as number })
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel={`${label}에서 보기`}
+                  >
+                    <Text style={styles.mapChipText}>{label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
 
-            <View style={styles.actions}>
-              <Pressable
-                style={[styles.primaryButton, isSaving ? styles.disabledButton : null]}
-                onPress={toggleSaved}
+            {/* 주요 동작은 소개글 위에 한 줄로 (긴 소개글 아래 버튼 5개가 쌓여 있던 구조 정리) */}
+            <View style={styles.actionRow}>
+              <ActionButton
+                icon="heart"
+                label={isSaved ? '저장됨' : '저장'}
+                active={isSaved}
                 disabled={isSaving}
-              >
-                <Feather name="heart" size={17} color={COLORS.white} />
-                <Text style={styles.primaryText}>{isSaved ? '저장됨' : '저장'}</Text>
-              </Pressable>
-
-              <Pressable
-                style={[styles.secondaryButton, isAddingSchedule ? styles.disabledButton : null]}
-                onPress={addToCalendar}
-                disabled={isAddingSchedule}
-              >
-                <Feather name="calendar" size={17} color={COLORS.ink} />
-                <Text style={styles.secondaryText}>일정 추가</Text>
-              </Pressable>
-
-              {homepageUrl ? (
-                <Pressable style={styles.secondaryButton} onPress={openHomepage}>
-                  <Feather name="external-link" size={17} color={COLORS.ink} />
-                  <Text style={styles.secondaryText}>홈페이지</Text>
-                </Pressable>
-              ) : null}
+                onPress={toggleSaved}
+              />
+              <ActionButton icon="calendar" label="일정 추가" disabled={isAddingSchedule} onPress={addToCalendar} />
+              <ActionButton icon="navigation" label="길찾기" onPress={openDirections} />
+              {homepageUrl ? <ActionButton icon="external-link" label="홈페이지" onPress={openHomepage} /> : null}
             </View>
 
             {statusMessage ? (
@@ -230,10 +248,45 @@ export default function EventDetailScreen({ navigation, route }: Props) {
                 />
               </View>
             ) : null}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>소개</Text>
+              <Text style={styles.description}>{detail?.overview || '상세 소개 정보가 없습니다.'}</Text>
+            </View>
+
           </>
         ) : null}
       </Screen>
     </View>
+  );
+}
+
+function ActionButton({
+  icon,
+  label,
+  onPress,
+  active = false,
+  disabled = false,
+}: {
+  icon: 'heart' | 'calendar' | 'navigation' | 'external-link';
+  label: string;
+  onPress: () => void;
+  active?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.actionButton, pressed || disabled ? styles.disabledButton : null]}
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: active, disabled }}
+    >
+      <View style={[styles.actionIcon, active ? styles.actionIconActive : null]}>
+        <Feather name={icon} size={20} color={active ? COLORS.white : COLORS.teal} />
+      </View>
+      <Text style={styles.actionText}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -286,22 +339,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 18,
   },
-  tag: {
-    alignSelf: 'flex-start',
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    marginBottom: 10,
-  },
   tagText: {
-    color: COLORS.white,
-    fontSize: 11,
-    fontWeight: '900',
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 6,
   },
   title: {
     color: COLORS.ink,
-    fontSize: 25,
-    fontWeight: '900',
+    fontSize: 24,
+    fontWeight: '700',
     lineHeight: 31,
   },
   subtitle: {
@@ -336,12 +382,12 @@ const styles = StyleSheet.create({
   infoLabel: {
     color: COLORS.muted,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   infoValue: {
     color: COLORS.ink,
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: 15,
+    fontWeight: '600',
     marginTop: 2,
   },
   section: {
@@ -351,7 +397,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: COLORS.ink,
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '700',
     marginBottom: 8,
   },
   description: {
@@ -359,45 +405,67 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 23,
   },
-  actions: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
-  },
-  primaryButton: {
-    minHeight: 52,
-    borderRadius: radius.lg,
-    backgroundColor: COLORS.teal,
+  mapRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
+    marginHorizontal: 20,
+    marginTop: 12,
   },
-  primaryText: {
-    color: COLORS.white,
-    fontSize: 15,
-    fontWeight: '900',
-    marginLeft: 7,
+  mapLabel: {
+    color: COLORS.muted,
+    fontSize: 13,
+    fontWeight: '600',
+    marginRight: 'auto',
   },
-  secondaryButton: {
-    minHeight: 52,
-    borderRadius: radius.lg,
+  mapChip: {
+    minHeight: 34,
+    borderRadius: 17,
     borderWidth: 1,
     borderColor: COLORS.line,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    marginLeft: 6,
+  },
+  mapChipText: {
+    color: COLORS.ink,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  actionRow: {
     flexDirection: 'row',
+    marginHorizontal: 12,
+    marginTop: 20,
+    paddingVertical: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: COLORS.line,
+  },
+  actionButton: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  actionIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: COLORS.tealSoft,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
+    marginBottom: 6,
   },
-  secondaryText: {
-    color: COLORS.ink,
-    fontSize: 15,
-    fontWeight: '900',
-    marginLeft: 7,
+  actionIconActive: {
+    backgroundColor: COLORS.teal,
+  },
+  actionText: {
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: '600',
   },
   disabledButton: {
     opacity: 0.55,
   },
   toastWrap: {
     paddingHorizontal: 20,
+    paddingTop: 12,
   },
 });
