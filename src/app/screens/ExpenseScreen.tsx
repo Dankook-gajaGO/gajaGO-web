@@ -30,6 +30,11 @@ import { ensureLoggedIn, isLoggedIn } from '../utils/requireLogin';
 import { cancelTripReminder, scheduleTripReminder } from '../utils/notifications';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Expense'>;
+
+// 비회원 가계부: 서버에 저장하지 않고 앱이 켜져 있는 동안만 보관 (화면을 나갔다 와도 유지)
+// shortcut: 앱을 완전히 끄면 사라짐, 비회원도 남기길 원하면 AsyncStorage 저장으로 확장
+const guestStore: { items: ExpenseItem[]; trips: TripItem[] } = { items: [], trips: [] };
+const localId = () => -Date.now(); // 음수 id: 서버 id(양수)와 겹치지 않음
 type FeatherName = ComponentProps<typeof Feather>['name'];
 
 // 분류마다 아이콘·색을 정해 목록과 분류별 막대에서 한눈에 구분
@@ -87,7 +92,7 @@ const detailOf = (item: ExpenseItem) => (item.title && item.title !== item.categ
 
 export default function ExpenseScreen({ navigation }: Props) {
   // 비회원도 들어와서 N빵 계산은 가능. 지출 저장·목록은 회원만
-  const [isMember, setIsMember] = useState(false);
+  const [isMember, setIsMember] = useState<boolean | null>(null); // null = 아직 확인 전
   const [items, setItems] = useState<ExpenseItem[]>([]);
   const [rates, setRates] = useState<Record<string, number>>({});
   const [currency, setCurrency] = useState('USD');
@@ -124,7 +129,11 @@ export default function ExpenseScreen({ navigation }: Props) {
   const load = useCallback(async () => {
     const member = await isLoggedIn();
     setIsMember(member);
-    if (!member) return;
+    if (!member) {
+      setItems(guestStore.items);
+      setTrips(guestStore.trips);
+      return;
+    }
     try {
       const [expenses, tripList] = await Promise.all([getExpenses(), getTrips()]);
       setItems(expenses);
@@ -153,14 +162,19 @@ export default function ExpenseScreen({ navigation }: Props) {
       .catch(() => undefined);
   }, []);
 
+  useEffect(() => {
+    if (isMember !== false) return; // 확인 전 빈 목록으로 보관함을 덮어쓰지 않게
+    guestStore.items = items;
+    guestStore.trips = trips;
+  }, [isMember, items, trips]);
+
   const chooseCurrency = (next: string) => {
     setCurrency(next);
     setShowCurrencies(false);
     void AsyncStorage.setItem(CURRENCY_KEY, next).catch(() => undefined);
   };
 
-  const openAdd = async () => {
-    if (!(await ensureLoggedIn(navigation))) return;
+  const openAdd = () => {
     setDraftAmount(0);
     setDraftTitle('');
     setDraftDate(trip && (today < trip.startDate || today > trip.endDate) ? trip.startDate : today);
@@ -179,8 +193,7 @@ export default function ExpenseScreen({ navigation }: Props) {
     setSheet('edit');
   };
 
-  const openTripSheet = async () => {
-    if (!(await ensureLoggedIn(navigation))) return;
+  const openTripSheet = () => {
     setTripName('');
     setTripStart(today);
     setTripEnd(shiftDate(today, 2));
@@ -195,7 +208,8 @@ export default function ExpenseScreen({ navigation }: Props) {
       return;
     }
     try {
-      const created = await addTrip({ name: tripName.trim(), startDate: tripStart, endDate: tripEnd });
+      const body = { name: tripName.trim(), startDate: tripStart, endDate: tripEnd };
+      const created = isMember ? await addTrip(body) : { id: localId(), ...body };
       if (tripAlarm) void scheduleTripReminder(created);
       setTrips((list) => [created, ...list].sort((a, b) => (a.startDate < b.startDate ? 1 : -1)));
       setTripId(created.id);
@@ -208,7 +222,7 @@ export default function ExpenseScreen({ navigation }: Props) {
   // 여행만 지움 (그 기간 지출은 그대로)
   const removeTrip = async (id: number) => {
     try {
-      await deleteTrip(id);
+      if (isMember) await deleteTrip(id);
       void cancelTripReminder(id);
       setTrips((list) => list.filter((t) => t.id !== id));
       setTripId(null);
@@ -237,10 +251,10 @@ export default function ExpenseScreen({ navigation }: Props) {
       const title = draftTitle.trim() || draftCategory; // 세부 내용을 비우면 분류 이름으로
       const body = { spentOn: draftDate, title, amount: draftAmount, category: draftCategory };
       if (sheet === 'edit' && editingId !== null) {
-        const updated = await updateExpense(editingId, body);
+        const updated = isMember ? await updateExpense(editingId, body) : { id: editingId, ...body };
         setItems((current) => sortExpenses(current.map((i) => (i.id === updated.id ? updated : i))));
       } else {
-        const created = await addExpense(body);
+        const created = isMember ? await addExpense(body) : { id: localId(), ...body };
         setItems((current) => sortExpenses([created, ...current]));
       }
       setSheet(null);
@@ -251,7 +265,7 @@ export default function ExpenseScreen({ navigation }: Props) {
 
   const remove = async (id: number) => {
     try {
-      await deleteExpense(id);
+      if (isMember) await deleteExpense(id);
       setItems((current) => current.filter((item) => item.id !== id));
     } catch (error) {
       setMessage(getApiErrorMessage(error));
@@ -259,8 +273,7 @@ export default function ExpenseScreen({ navigation }: Props) {
   };
 
   // 공유하기 열기: 기본 기간 = 첫 기록 ~ 마지막 기록
-  const openShare = async () => {
-    if (!(await ensureLoggedIn(navigation))) return;
+  const openShare = () => {
     if (visibleItems.length === 0) {
       setMessage('공유할 기록이 없어요');
       return;
@@ -357,25 +370,30 @@ export default function ExpenseScreen({ navigation }: Props) {
     <View style={styles.screen}>
       <AppHeader title="여행 가계부" onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.content}>
-        {isMember ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tripBar} contentContainerStyle={styles.tripBarInner}>
-            {[{ id: null as number | null, name: '전체' }, ...trips].map((t) => (
-              <Pressable
-                key={t.id ?? 'all'}
-                style={[styles.tripChip, t.id === tripId ? styles.tripChipOn : null]}
-                onPress={() => setTripId(t.id)}
-                accessibilityRole="button"
-                accessibilityState={{ selected: t.id === tripId }}
-              >
-                <Text style={[styles.tripChipText, t.id === tripId ? styles.tripChipTextOn : null]}>{t.name}</Text>
-              </Pressable>
-            ))}
-            <Pressable style={styles.tripAdd} onPress={openTripSheet} accessibilityRole="button">
-              <Feather name="plus" size={14} color={COLORS.teal} />
-              <Text style={styles.tripAddText}>새 여행</Text>
-            </Pressable>
-          </ScrollView>
+        {!isMember ? (
+          <Pressable style={styles.guestBox} onPress={() => void ensureLoggedIn(navigation)} accessibilityRole="button">
+            <Feather name="info" size={18} color={COLORS.muted} />
+            <Text style={styles.guestText}>비회원 기록은 앱을 끄면 사라져요. 로그인하면 서버에 저장돼 언제든 다시 볼 수 있어요.</Text>
+            <Text style={styles.guestLink}>로그인</Text>
+          </Pressable>
         ) : null}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tripBar} contentContainerStyle={styles.tripBarInner}>
+          {[{ id: null as number | null, name: '전체' }, ...trips].map((t) => (
+            <Pressable
+              key={t.id ?? 'all'}
+              style={[styles.tripChip, t.id === tripId ? styles.tripChipOn : null]}
+              onPress={() => setTripId(t.id)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: t.id === tripId }}
+            >
+              <Text style={[styles.tripChipText, t.id === tripId ? styles.tripChipTextOn : null]}>{t.name}</Text>
+            </Pressable>
+          ))}
+          <Pressable style={styles.tripAdd} onPress={openTripSheet} accessibilityRole="button">
+            <Feather name="plus" size={14} color={COLORS.teal} />
+            <Text style={styles.tripAddText}>새 여행</Text>
+          </Pressable>
+        </ScrollView>
         {/* 요약: 큰 총액 하나 + 환산 */}
         <View style={styles.summary}>
           <View style={styles.summaryTop}>
@@ -484,69 +502,62 @@ export default function ExpenseScreen({ navigation }: Props) {
         ) : null}
 
         {/* 날짜별 내역 */}
-        {isMember ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>내역</Text>
-            {byDate.length === 0 ? (
-              <View style={styles.emptyBox}>
-                <Feather name="file-text" size={28} color={COLORS.line} />
-                <Text style={styles.emptyText}>아직 기록이 없어요{'\n'}아래 버튼으로 첫 지출을 추가해 보세요</Text>
-              </View>
-            ) : (
-              byDate.map(([date, list]) => (
-                <View key={date} style={styles.dayGroup}>
-                  <View style={styles.dayHeader}>
-                    <Text style={styles.dayTitle}>{dayLabel(date, today)}</Text>
-                    <Text style={styles.daySum}>{won(list.reduce((s, i) => s + i.amount, 0))}</Text>
-                  </View>
-                  {list.map((item) => {
-                    const c = categoryOf(item.category);
-                    return (
-                      <Pressable
-                        key={item.id}
-                        style={styles.row}
-                        onPress={() => openEdit(item)}
-                        accessibilityRole="button"
-                        accessibilityLabel={`${item.category} ${detailOf(item)} 수정`}
-                      >
-                        <View style={[styles.rowIcon, { backgroundColor: `${c.color}1F` }]}>
-                          <Feather name={c.icon} size={16} color={c.color} />
-                        </View>
-                        <View style={styles.rowBody}>
-                          <View style={styles.rowTitleLine}>
-                            <Text style={styles.rowName}>{item.category}</Text>
-                            <Feather name="edit-2" size={12} color={COLORS.muted} style={styles.pencil} />
-                          </View>
-                          <Text style={detailOf(item) ? styles.detailText : styles.detailEmpty} numberOfLines={1}>
-                            {detailOf(item) || '세부 내용 추가'}
-                          </Text>
-                        </View>
-                        <View style={styles.rowRight}>
-                          <Text style={styles.rowAmount}>-{won(item.amount)}</Text>
-                          {rateValue > 0 ? <Text style={styles.subText}>{toForeign(item.amount)}</Text> : null}
-                        </View>
-                        <Pressable onPress={() => remove(item.id)} style={styles.rowDelete} accessibilityLabel={`${item.title} 삭제`}>
-                          <Feather name="x" size={16} color={COLORS.muted} />
-                        </Pressable>
-                      </Pressable>
-                    );
-                  })}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>내역</Text>
+          {byDate.length === 0 ? (
+            <View style={styles.emptyBox}>
+              <Feather name="file-text" size={28} color={COLORS.line} />
+              <Text style={styles.emptyText}>아직 기록이 없어요{'\n'}아래 버튼으로 첫 지출을 추가해 보세요</Text>
+            </View>
+          ) : (
+            byDate.map(([date, list]) => (
+              <View key={date} style={styles.dayGroup}>
+                <View style={styles.dayHeader}>
+                  <Text style={styles.dayTitle}>{dayLabel(date, today)}</Text>
+                  <Text style={styles.daySum}>{won(list.reduce((s, i) => s + i.amount, 0))}</Text>
                 </View>
-              ))
-            )}
-            {visibleItems.length > 0 ? (
-              <Pressable style={styles.shareButton} onPress={openShare} accessibilityRole="button">
-                <Feather name="share-2" size={16} color={COLORS.teal} />
-                <Text style={styles.shareButtonText}>공유하기</Text>
-              </Pressable>
-            ) : null}
-          </View>
-        ) : (
-          <View style={styles.guestBox}>
-            <Feather name="lock" size={18} color={COLORS.muted} />
-            <Text style={styles.guestText}>로그인하면 지출을 기록하고 여행이 끝나도 다시 볼 수 있어요. N빵 계산은 로그인 없이 쓸 수 있어요.</Text>
-          </View>
-        )}
+                {list.map((item) => {
+                  const c = categoryOf(item.category);
+                  return (
+                    <Pressable
+                      key={item.id}
+                      style={styles.row}
+                      onPress={() => openEdit(item)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${item.category} ${detailOf(item)} 수정`}
+                    >
+                      <View style={[styles.rowIcon, { backgroundColor: `${c.color}1F` }]}>
+                        <Feather name={c.icon} size={16} color={c.color} />
+                      </View>
+                      <View style={styles.rowBody}>
+                        <View style={styles.rowTitleLine}>
+                          <Text style={styles.rowName}>{item.category}</Text>
+                          <Feather name="edit-2" size={12} color={COLORS.muted} style={styles.pencil} />
+                        </View>
+                        <Text style={detailOf(item) ? styles.detailText : styles.detailEmpty} numberOfLines={1}>
+                          {detailOf(item) || '세부 내용 추가'}
+                        </Text>
+                      </View>
+                      <View style={styles.rowRight}>
+                        <Text style={styles.rowAmount}>-{won(item.amount)}</Text>
+                        {rateValue > 0 ? <Text style={styles.subText}>{toForeign(item.amount)}</Text> : null}
+                      </View>
+                      <Pressable onPress={() => remove(item.id)} style={styles.rowDelete} accessibilityLabel={`${item.title} 삭제`}>
+                        <Feather name="x" size={16} color={COLORS.muted} />
+                      </Pressable>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ))
+          )}
+          {visibleItems.length > 0 ? (
+            <Pressable style={styles.shareButton} onPress={openShare} accessibilityRole="button">
+              <Feather name="share-2" size={16} color={COLORS.teal} />
+              <Text style={styles.shareButtonText}>공유하기</Text>
+            </Pressable>
+          ) : null}
+        </View>
         {message ? <Text style={styles.message}>{message}</Text> : null}
       </ScrollView>
 
@@ -800,6 +811,7 @@ const styles = StyleSheet.create({
   exportText: { color: COLORS.muted, fontSize: 13, fontWeight: '600', marginLeft: 6, textDecorationLine: 'underline' },
   guestBox: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: COLORS.white, paddingHorizontal: 22, paddingVertical: 18 },
   guestText: { flex: 1, color: COLORS.text, fontSize: 14, lineHeight: 21, marginLeft: 10 },
+  guestLink: { color: COLORS.teal, fontSize: 14, fontWeight: '700', marginLeft: 10 },
   message: { color: COLORS.red, fontSize: 13, marginTop: 8, paddingHorizontal: 22 },
 
   bottomBar: { position: 'absolute', left: 0, right: 0, bottom: 0, padding: 16, paddingBottom: 24, backgroundColor: COLORS.screen },
