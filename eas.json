@@ -6,7 +6,7 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "http://192.168.55.14:8080"
+        "EXPO_PUBLIC_API_BASE_URL": "http://15.135.9.219:8080"
       },
       "android": {
         "buildType": "apk"
@@ -14,7 +14,7 @@
     },
     "production": {
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "http://192.168.55.14:8080"
+        "EXPO_PUBLIC_API_BASE_URL": "http://15.135.9.219:8080"
       },
       "android": {
         "buildType": "app-bundle"
