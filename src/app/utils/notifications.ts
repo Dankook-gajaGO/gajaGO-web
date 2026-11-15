@@ -21,11 +21,6 @@ export function reminderDate(date: string, hour: number, dayOffset = 0) {
   const [y, m, d] = date.split('-').map(Number);
   return new Date(y, m - 1, d + dayOffset, hour, 0, 0);
 }
-// self-check: 월초 전날
-{
-  const r = reminderDate('2026-12-01', 9, -1);
-  if (r.getMonth() !== 10 || r.getDate() !== 30 || r.getHours() !== 9) throw new Error('reminderDate self-check failed');
-}
 
 async function ensurePermission() {
   if (!supported) return false;

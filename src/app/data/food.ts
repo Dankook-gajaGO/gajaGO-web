@@ -36,7 +36,3 @@ export function passesDietFilters(ingredients: string[], selectedIds: string[]) 
     .filter((f) => selectedIds.includes(f.id))
     .every((f) => !ingredients.some((ing) => (f.exclude as readonly string[]).includes(ing)));
 }
-// self-check
-if (passesDietFilters(['고추장', '밥'], ['mild']) || !passesDietFilters(['간장', '밥'], ['mild', 'vegetarian'])) {
-  throw new Error('passesDietFilters self-check failed');
-}

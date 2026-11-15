@@ -1,9 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
-import { Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Sharing from 'expo-sharing';
-import { captureRef } from 'react-native-view-shot';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
@@ -22,7 +20,9 @@ import {
 } from '../api';
 import { AppHeader } from '../components/common/AppHeader';
 import { AmountKeypad } from '../components/expense/AmountKeypad';
-import { ExpenseReceipt } from '../components/expense/ExpenseReceipt';
+import { CATEGORIES, categoryOf, dayLabel, detailOf, shiftDate, splitAmount, won } from '../components/expense/expenseUtils';
+import { ShareSheet } from '../components/expense/ShareSheet';
+import { TripSheet, type NewTrip } from '../components/expense/TripSheet';
 import type { RootStackParamList } from '../routes';
 import { COLORS, radius } from '../theme';
 import { getFallbackTodayKey } from '../utils/date';
@@ -31,64 +31,22 @@ import { cancelTripReminder, scheduleTripReminder } from '../utils/notifications
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Expense'>;
 
-// 비회원 가계부: 서버에 저장하지 않고 앱이 켜져 있는 동안만 보관 (화면을 나갔다 와도 유지)
-// shortcut: 앱을 완전히 끄면 사라짐, 비회원도 남기길 원하면 AsyncStorage 저장으로 확장
+// 비회원 가계부는 서버에 저장하지 않고 앱이 켜져 있는 동안만 보관 (앱을 끄면 사라짐)
 const guestStore: { items: ExpenseItem[]; trips: TripItem[] } = { items: [], trips: [] };
 const localId = () => -Date.now(); // 음수 id: 서버 id(양수)와 겹치지 않음
-type FeatherName = ComponentProps<typeof Feather>['name'];
-
-// 분류마다 아이콘·색을 정해 목록과 분류별 막대에서 한눈에 구분
-const CATEGORIES: Array<{ name: string; icon: FeatherName; color: string }> = [
-  { name: '식비', icon: 'coffee', color: COLORS.orange },
-  { name: '교통', icon: 'navigation', color: COLORS.blue },
-  { name: '쇼핑', icon: 'shopping-bag', color: COLORS.purple },
-  { name: '숙박', icon: 'home', color: COLORS.teal },
-  { name: '입장료', icon: 'tag', color: COLORS.red },
-  { name: '기타', icon: 'more-horizontal', color: COLORS.muted },
-];
-const categoryOf = (name: string) => CATEGORIES.find((c) => c.name === name) ?? CATEGORIES[CATEGORIES.length - 1];
 
 // 방한객 주요 통화. KRW 는 환산 없이 원화만 (한국인 사용자). 선택은 기기에 저장
 const CURRENCIES = ['KRW', 'USD', 'JPY', 'CNY', 'TWD', 'HKD', 'EUR', 'THB', 'VND', 'PHP', 'SGD'];
 const CURRENCY_KEY = 'gajago.expense.currency';
 
-const won = (n: number) => `${Math.round(n).toLocaleString('ko-KR')}원`;
-
-export function splitAmount(total: number, people: number) {
-  if (!(people >= 1)) return 0;
-  return Math.ceil(total / people / 10) * 10; // 10원 단위 올림: 모자라지 않게
-}
-// self-check: N빵 계산
-if (splitAmount(10000, 3) !== 3340 || splitAmount(0, 2) !== 0 || splitAmount(5000, 0) !== 0) {
-  throw new Error('splitAmount self-check failed');
-}
-
-// 'YYYY-MM-DD' 를 delta 일 이동 (시간대 영향 없게 로컬 날짜로 계산)
-export function shiftDate(date: string, delta: number) {
-  const [y, m, d] = date.split('-').map(Number);
-  const next = new Date(y, m - 1, d + delta);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${next.getFullYear()}-${pad(next.getMonth() + 1)}-${pad(next.getDate())}`;
-}
-// self-check: 월말·연말 넘김
-if (shiftDate('2026-11-30', 1) !== '2026-12-01' || shiftDate('2026-01-01', -1) !== '2025-12-31') {
-  throw new Error('shiftDate self-check failed');
-}
 
 // 최신 날짜가 위로
 const sortExpenses = (list: ExpenseItem[]) =>
   [...list].sort((a, b) => (a.spentOn === b.spentOn ? b.id - a.id : a.spentOn < b.spentOn ? 1 : -1));
 
-function dayLabel(date: string, today: string) {
-  if (date === today) return '오늘';
-  const [, m, d] = date.split('-');
-  return `${Number(m)}월 ${Number(d)}일`;
-}
 
 type Sheet = null | 'add' | 'edit' | 'split';
 
-// 세부 내용이 없으면(분류 이름과 같으면) 분류만 표시
-const detailOf = (item: ExpenseItem) => (item.title && item.title !== item.category ? item.title : '');
 
 export default function ExpenseScreen({ navigation }: Props) {
   // 비회원도 들어와서 N빵 계산은 가능. 지출 저장·목록은 회원만
@@ -114,17 +72,10 @@ export default function ExpenseScreen({ navigation }: Props) {
   const [shareOpen, setShareOpen] = useState(false);
   const [shareFrom, setShareFrom] = useState(getFallbackTodayKey());
   const [shareTo, setShareTo] = useState(getFallbackTodayKey());
-  const [isSharing, setIsSharing] = useState(false);
-  const receiptRef = useRef<View>(null);
   // 여행: 선택하면 그 기간의 지출만 보여줌 (null = 전체)
   const [trips, setTrips] = useState<TripItem[]>([]);
   const [tripId, setTripId] = useState<number | null>(null);
   const [tripSheet, setTripSheet] = useState(false);
-  const [tripName, setTripName] = useState('');
-  const [tripStart, setTripStart] = useState(getFallbackTodayKey());
-  const [tripEnd, setTripEnd] = useState(getFallbackTodayKey());
-  const [tripMessage, setTripMessage] = useState('');
-  const [tripAlarm, setTripAlarm] = useState(false);
 
   const load = useCallback(async () => {
     const member = await isLoggedIn();
@@ -193,30 +144,17 @@ export default function ExpenseScreen({ navigation }: Props) {
     setSheet('edit');
   };
 
-  const openTripSheet = () => {
-    setTripName('');
-    setTripStart(today);
-    setTripEnd(shiftDate(today, 2));
-    setTripMessage('');
-    setTripAlarm(false);
-    setTripSheet(true);
-  };
-
-  const createTrip = async () => {
-    if (!tripName.trim()) {
-      setTripMessage('여행 이름을 입력해주세요.');
-      return;
-    }
+  const createTrip = async (body: NewTrip, alarm: boolean) => {
+    let created: TripItem;
     try {
-      const body = { name: tripName.trim(), startDate: tripStart, endDate: tripEnd };
-      const created = isMember ? await addTrip(body) : { id: localId(), ...body };
-      if (tripAlarm) void scheduleTripReminder(created);
-      setTrips((list) => [created, ...list].sort((a, b) => (a.startDate < b.startDate ? 1 : -1)));
-      setTripId(created.id);
-      setTripSheet(false);
+      created = isMember ? await addTrip(body) : { id: localId(), ...body };
     } catch (error) {
-      setTripMessage(getApiErrorMessage(error));
+      throw new Error(getApiErrorMessage(error));
     }
+    if (alarm) void scheduleTripReminder(created);
+    setTrips((list) => [created, ...list].sort((a, b) => (a.startDate < b.startDate ? 1 : -1)));
+    setTripId(created.id);
+    setTripSheet(false);
   };
 
   // 여행만 지움 (그 기간 지출은 그대로)
@@ -284,61 +222,6 @@ export default function ExpenseScreen({ navigation }: Props) {
     setShareOpen(true);
   };
 
-  // 폰: 영수증을 이미지로 캡처해 공유 메뉴(카톡·라인 등). PC(웹): 텍스트 파일로 저장
-  const shareReceipt = async () => {
-    setIsSharing(true);
-    try {
-      if (Platform.OS === 'web') {
-        downloadText(shareItems);
-      } else {
-        const uri = await captureRef(receiptRef, { format: 'png', quality: 1, result: 'tmpfile' });
-        if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: '가계부 공유' });
-        } else {
-          await Share.share({ url: uri, message: '가자GO 여행 가계부' });
-        }
-      }
-      setShareOpen(false);
-    } catch (error) {
-      setMessage(getApiErrorMessage(error));
-    } finally {
-      setIsSharing(false);
-    }
-  };
-
-  const downloadText = (list: ExpenseItem[]) => {
-    const sum = list.reduce((acc, i) => acc + i.amount, 0);
-    const each = splitAmount(sum, people);
-    const fx = (n: number) => (rateValue > 0 ? ` (${toForeign(n)})` : '');
-    const cats = CATEGORIES.map((c) => ({ name: c.name, sum: list.filter((i) => i.category === c.name).reduce((a, i) => a + i.amount, 0) }))
-      .filter((c) => c.sum > 0)
-      .sort((a, b) => b.sum - a.sum);
-    const text = [
-      `가자GO 여행 가계부 (${shareFrom} ~ ${shareTo})`,
-      '',
-      '[요약]',
-      `총 지출: ${won(sum)}${fx(sum)}`,
-      `기록 ${list.length}건`,
-      '',
-      '[N빵]',
-      `${won(sum)} ÷ ${people}명 → 한 사람당 ${won(each)}${fx(each)}`,
-      '',
-      '[어디에 썼을까요]',
-      ...cats.map((c) => `${c.name} ${won(c.sum)} (${Math.round((c.sum / sum) * 100)}%)`),
-      '',
-      '[내역] 날짜,분류,세부 내용,금액(원)',
-      ...list.map((i) => `${i.spentOn},${i.category},"${detailOf(i).replace(/"/g, '""')}",${i.amount}`),
-    ].join('\n');
-    const doc = (globalThis as unknown as { document: any }).document;
-    const url = URL.createObjectURL(new Blob(['\uFEFF' + text], { type: 'text/plain;charset=utf-8' }));
-    const a = doc.createElement('a');
-    a.href = url;
-    a.download = `gajago-가계부-${shareFrom}_${shareTo}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-    setMessage('파일로 저장했어요');
-  };
-
   const trip = trips.find((t) => t.id === tripId) ?? null;
   const visibleItems = trip ? items.filter((i) => i.spentOn >= trip.startDate && i.spentOn <= trip.endDate) : items;
   const total = visibleItems.reduce((sum, item) => sum + item.amount, 0);
@@ -348,8 +231,6 @@ export default function ExpenseScreen({ navigation }: Props) {
   const toForeign = (n: number) =>
     rateValue > 0 ? `≈ ${(n / rateValue).toLocaleString('en-US', { maximumFractionDigits: 2 })} ${currency}` : '';
   const splitBase = splitInput > 0 ? splitInput : total;
-  const shareItems = items.filter((i) => i.spentOn >= shareFrom && i.spentOn <= shareTo);
-  const shareTotal = shareItems.reduce((sum, i) => sum + i.amount, 0);
   const perPerson = splitAmount(splitBase, people);
 
   const byCategory = useMemo(
@@ -389,7 +270,7 @@ export default function ExpenseScreen({ navigation }: Props) {
               <Text style={[styles.tripChipText, t.id === tripId ? styles.tripChipTextOn : null]}>{t.name}</Text>
             </Pressable>
           ))}
-          <Pressable style={styles.tripAdd} onPress={openTripSheet} accessibilityRole="button">
+          <Pressable style={styles.tripAdd} onPress={() => setTripSheet(true)} accessibilityRole="button">
             <Feather name="plus" size={14} color={COLORS.teal} />
             <Text style={styles.tripAddText}>새 여행</Text>
           </Pressable>
@@ -640,109 +521,20 @@ export default function ExpenseScreen({ navigation }: Props) {
         </View>
       </Modal>
 
-      {/* 새 여행: 이름 + 기간 */}
-      <Modal visible={tripSheet} transparent animationType="slide" onRequestClose={() => setTripSheet(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setTripSheet(false)} accessibilityLabel="닫기" />
-        <View style={styles.sheet}>
-          <View style={styles.handle} />
-          <Text style={styles.sheetTitle}>새 여행</Text>
-          <TextInput
-            style={styles.titleInput}
-            value={tripName}
-            onChangeText={setTripName}
-            placeholder="여행 이름 (예: 서울 여행)"
-            placeholderTextColor={COLORS.muted}
-            maxLength={40}
-          />
-          {(
-            [
-              ['시작', tripStart, (d: string) => {
-                setTripStart(d);
-                if (d > tripEnd) setTripEnd(d);
-              }],
-              ['끝', tripEnd, (d: string) => setTripEnd(d < tripStart ? tripStart : d)],
-            ] as const
-          ).map(([label, value, set]) => (
-            <View key={label} style={styles.rangeRow}>
-              <Text style={styles.rangeLabel}>{label}</Text>
-              <Pressable style={styles.dateArrow} onPress={() => set(shiftDate(value, -1))} accessibilityLabel={`${label} 하루 전`}>
-                <Feather name="chevron-left" size={18} color={COLORS.ink} />
-              </Pressable>
-              <Text style={styles.dateText}>{dayLabel(value, today)}</Text>
-              <Pressable style={styles.dateArrow} onPress={() => set(shiftDate(value, 1))} accessibilityLabel={`${label} 하루 뒤`}>
-                <Feather name="chevron-right" size={18} color={COLORS.ink} />
-              </Pressable>
-            </View>
-          ))}
-          <Pressable
-            style={styles.alarmToggle}
-            onPress={() => setTripAlarm((v) => !v)}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: tripAlarm }}
-          >
-            <Feather name={tripAlarm ? 'check-square' : 'square'} size={18} color={tripAlarm ? COLORS.teal : COLORS.muted} />
-            <Text style={styles.alarmToggleText}>여행 시작일 아침 8시에 알림 받기</Text>
-          </Pressable>
-          {tripMessage ? <Text style={styles.message}>{tripMessage}</Text> : null}
-          <Pressable style={[styles.cta, styles.sheetCta]} onPress={createTrip} accessibilityRole="button">
-            <Text style={styles.ctaText}>여행 만들기</Text>
-          </Pressable>
-        </View>
-      </Modal>
-
-      {/* 공유하기: 기간 선택 + 영수증 미리보기 */}
-      <Modal visible={shareOpen} transparent animationType="slide" onRequestClose={() => setShareOpen(false)}>
-        <View style={styles.shareBackdrop}>
-          <View style={styles.shareSheet}>
-            <View style={styles.handle} />
-            <Text style={styles.sheetTitle}>공유할 기간</Text>
-            {(
-              [
-                ['시작', shareFrom, (d: string) => setShareFrom(d > shareTo ? shareTo : d)],
-                ['끝', shareTo, (d: string) => setShareTo(d < shareFrom ? shareFrom : d)],
-              ] as const
-            ).map(([label, value, set]) => (
-              <View key={label} style={styles.rangeRow}>
-                <Text style={styles.rangeLabel}>{label}</Text>
-                <Pressable style={styles.dateArrow} onPress={() => set(shiftDate(value, -1))} accessibilityLabel={`${label} 하루 전`}>
-                  <Feather name="chevron-left" size={18} color={COLORS.ink} />
-                </Pressable>
-                <Text style={styles.dateText}>{dayLabel(value, today)}</Text>
-                <Pressable style={styles.dateArrow} onPress={() => set(shiftDate(value, 1))} accessibilityLabel={`${label} 하루 뒤`}>
-                  <Feather name="chevron-right" size={18} color={COLORS.ink} />
-                </Pressable>
-              </View>
-            ))}
-            <ScrollView style={styles.receiptScroll} contentContainerStyle={styles.receiptWrap}>
-              <View ref={receiptRef} collapsable={false}>
-                <ExpenseReceipt
-                  items={shareItems}
-                  from={shareFrom}
-                  to={shareTo}
-                  people={people}
-                  perPerson={splitAmount(shareTotal, people)}
-                  currency={currency}
-                  toForeign={toForeign}
-                  createdOn={today}
-                  tripName={trip?.name}
-                />
-              </View>
-            </ScrollView>
-            <Pressable
-              style={[styles.cta, shareItems.length === 0 || isSharing ? styles.ctaDisabled : null]}
-              onPress={shareReceipt}
-              disabled={shareItems.length === 0 || isSharing}
-              accessibilityRole="button"
-            >
-              <Feather name={Platform.OS === 'web' ? 'download' : 'share-2'} size={18} color={COLORS.white} />
-              <Text style={styles.ctaText}>{Platform.OS === 'web' ? '파일로 저장' : '이미지로 공유'}</Text>
-            </Pressable>
-            <Pressable style={styles.closeLink} onPress={() => setShareOpen(false)} accessibilityRole="button">
-              <Text style={styles.exportText}>닫기</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
+      <TripSheet visible={tripSheet} today={today} onClose={() => setTripSheet(false)} onCreate={createTrip} />
+      <ShareSheet
+        visible={shareOpen}
+        initialFrom={shareFrom}
+        initialTo={shareTo}
+        items={items}
+        people={people}
+        currency={currency}
+        toForeign={toForeign}
+        today={today}
+        tripName={trip?.name}
+        onClose={() => setShareOpen(false)}
+        onMessage={setMessage}
+      />
     </View>
   );
 }
@@ -807,8 +599,6 @@ const styles = StyleSheet.create({
   daySum: { color: COLORS.muted, fontSize: 13, fontWeight: '700' },
   emptyBox: { alignItems: 'center', paddingVertical: 24 },
   emptyText: { color: COLORS.muted, fontSize: 14, textAlign: 'center', lineHeight: 21, marginTop: 10 },
-  exportLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, marginTop: 4 },
-  exportText: { color: COLORS.muted, fontSize: 13, fontWeight: '600', marginLeft: 6, textDecorationLine: 'underline' },
   guestBox: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: COLORS.white, paddingHorizontal: 22, paddingVertical: 18 },
   guestText: { flex: 1, color: COLORS.text, fontSize: 14, lineHeight: 21, marginLeft: 10 },
   guestLink: { color: COLORS.teal, fontSize: 14, fontWeight: '700', marginLeft: 10 },
@@ -832,8 +622,6 @@ const styles = StyleSheet.create({
   chipTextOn: { color: COLORS.white },
   titleInput: { minHeight: 46, borderRadius: radius.md, backgroundColor: COLORS.card, paddingHorizontal: 14, marginTop: 10, marginBottom: 6, color: COLORS.ink, fontSize: 15 },
   sheetCta: { marginTop: 10 },
-  alarmToggle: { flexDirection: 'row', alignItems: 'center', marginTop: 14 },
-  alarmToggleText: { color: COLORS.text, fontSize: 14, fontWeight: '600', marginLeft: 8 },
   tripBar: { backgroundColor: COLORS.white, flexGrow: 0 },
   tripBarInner: { paddingHorizontal: 22, paddingTop: 14, alignItems: 'center' },
   tripChip: { borderRadius: 16, backgroundColor: COLORS.card, paddingHorizontal: 14, paddingVertical: 8, marginRight: 8 },
@@ -846,13 +634,6 @@ const styles = StyleSheet.create({
   tripDeleteText: { color: COLORS.muted, fontSize: 12, textDecorationLine: 'underline' },
   shareButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', minHeight: 46, borderRadius: radius.md, borderWidth: 1, borderColor: COLORS.teal, marginTop: 12 },
   shareButtonText: { color: COLORS.teal, fontSize: 15, fontWeight: '700', marginLeft: 6 },
-  shareBackdrop: { flex: 1, backgroundColor: '#00000066', justifyContent: 'flex-end' },
-  shareSheet: { maxHeight: '92%', backgroundColor: COLORS.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 20 },
-  rangeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
-  rangeLabel: { color: COLORS.muted, fontSize: 13, fontWeight: '700', width: 36 },
-  receiptScroll: { marginTop: 14, marginBottom: 12, backgroundColor: COLORS.screen, borderRadius: radius.lg },
-  receiptWrap: { padding: 14 },
-  closeLink: { alignItems: 'center', paddingTop: 12 },
   dateRow: { flexDirection: 'row', alignItems: 'center', marginTop: 14 },
   dateArrow: { width: 34, height: 34, borderRadius: 17, backgroundColor: COLORS.card, alignItems: 'center', justifyContent: 'center' },
   dateText: { color: COLORS.ink, fontSize: 15, fontWeight: '700', marginHorizontal: 12, minWidth: 110, textAlign: 'center' },

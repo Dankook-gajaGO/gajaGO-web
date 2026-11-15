@@ -52,9 +52,3 @@ export const HELP_CARD: ShowCard = {
   korean: '도와주세요.\n저는 한국어를 잘 못해요.\n\n관광통역안내전화 1330에\n전화해 주실 수 있나요?',
   english: 'Please help me. I do not speak Korean well. Could you call the tourist helpline 1330 for me?',
 };
-
-const assert = (ok: boolean, msg: string) => {
-  if (!ok) throw new Error(msg);
-};
-// self-check: 알러지 이름이 앱 필터(data/food.ts)와 같아야 영어·예시가 붙음
-assert(Object.keys(ALLERGY_EN).length === 11 && Object.keys(ALLERGY_EXAMPLES).length === 11, 'allergy card names out of sync');

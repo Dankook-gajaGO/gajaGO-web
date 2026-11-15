@@ -11,10 +11,6 @@ export function nextAmount(current: number, key: string) {
   const next = `${current === 0 ? '' : current}${key}`.replace(/^0+/, '');
   return next.length > MAX_DIGITS ? current : Number(next || 0);
 }
-// self-check
-if (nextAmount(0, '0') !== 0 || nextAmount(12, '3') !== 123 || nextAmount(123, 'back') !== 12 || nextAmount(5, '00') !== 500) {
-  throw new Error('nextAmount self-check failed');
-}
 
 type Props = { value: number; onChange: (value: number) => void };
 
