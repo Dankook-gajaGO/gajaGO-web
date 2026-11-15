@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 declare const process: {
-  env?: {
+  env: {
     EXPO_PUBLIC_API_BASE_URL?: string;
   };
 };
@@ -10,8 +10,8 @@ const DEFAULT_API_BASE_URL = 'http://10.0.2.2:8080';
 const AUTH_TOKEN_STORAGE_KEY = 'gajago.authToken';
 const REQUEST_TIMEOUT_MS = 30_000;
 
-const envApiBaseUrl =
-  typeof process === 'undefined' ? undefined : process.env?.EXPO_PUBLIC_API_BASE_URL;
+// Expo는 빌드 때 `process.env.EXPO_PUBLIC_X` 형태 그대로만 값으로 바꿔 넣음 (?. 쓰면 APK에 주소가 안 들어감)
+const envApiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
 
 export const API_BASE_URL = envApiBaseUrl?.replace(/\/$/, '') ?? DEFAULT_API_BASE_URL;
 
