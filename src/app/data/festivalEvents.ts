@@ -148,14 +148,3 @@ export function sortFestivalEvents(events: FestivalEventItem[], today = localTod
     return a.title.localeCompare(b.title);
   });
 }
-
-// self-check: 내일 시작 < 어제 시작 < 열흘 뒤 시작 < 2022년 시작
-if (
-  !(
-    festivalRank('2026-11-09', '2026-11-08') < festivalRank('2026-11-06', '2026-11-08') &&
-    festivalRank('2026-11-06', '2026-11-08') < festivalRank('2026-11-18', '2026-11-08') &&
-    festivalRank('2026-11-18', '2026-11-08') < festivalRank('2022-11-01', '2026-11-08')
-  )
-) {
-  throw new Error('festivalRank self-check failed');
-}

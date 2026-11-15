@@ -27,7 +27,7 @@ export function useSafeFoods(selectedAllergies: string[]) {
         const response = await getSafeFoodList(selectedAllergies);
         if (!active) return;
 
-        setFoods(normalizeSafeFoodResponse(response, selectedAllergies));
+        setFoods(normalizeSafeFoodResponse(response));
       } catch (error) {
         if (!active) return;
 
